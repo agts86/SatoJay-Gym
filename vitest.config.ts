@@ -5,6 +5,16 @@ export default defineConfig({
     environment: "node",
     globals: false,
     include: ["tests/unit/**/*.test.ts"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json-summary", "html", "lcov"],
+      reportsDirectory: "coverage/unit",
+      include: ["src/shared/**/*.ts", "src/server/services/**/*.ts"],
+      exclude: [
+        "src/**/*.d.ts",
+        "src/**/*.test.{ts,tsx}",
+      ],
+    },
   },
   resolve: {
     alias: {
