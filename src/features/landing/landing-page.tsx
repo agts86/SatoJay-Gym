@@ -12,7 +12,7 @@ export function LandingPage() {
           関東の架空店舗で試せる、1時間の体験トレーニング。店舗と日時を選び、フォームから予約できます。
         </p>
         <div id={scrapeIds.lp.reservationCta} style={{ marginTop: 28 }}>
-          <Link className="button" href="/reservation">
+          <Link className="button bot_open" href="/reservation">
             体験予約へ進む
             <ArrowRight size={18} aria-hidden />
           </Link>
