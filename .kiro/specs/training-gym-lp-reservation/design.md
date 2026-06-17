@@ -3,7 +3,7 @@
 ## Overview
 本機能は、スクレイピング練習用の架空トレーニングジムLPとして、T3 App上にLP、店舗選択、体験予約フロー、最小限の管理ログイン、管理用店舗一覧、店舗別予約一覧を実装する。見込み客はLPから予約画面へ進み、都道府県、店舗、予約可能枠、予約者情報、確認画面を経て予約番号付きの完了画面に到達する。運営者はログイン後に店舗一覧から対象店舗を選び、予約日時昇順の予約一覧を確認する。
 
-対象ユーザーは、体験トレーニングを予約する見込み客と、最小限のログイン後に店舗別の予約状況を確認する運営者である。現在はWebアプリ本体がないため、T3 App、PostgreSQL、Prisma、tRPC、Tailwind CSSを新規に導入し、要件で定義されたURLとデータ保存を一貫した型安全な境界で提供する。
+対象ユーザーは、体験トレーニングを予約する見込み客と、最小限のログイン後に店舗別の予約状況を確認する運営者である。現在の実装はT3 App、PostgreSQL、Prisma、tRPC、Tailwind CSS import + カスタムCSSを基盤に、要件で定義されたURLとデータ保存を一貫した型安全な境界で提供する。
 
 ### Goals
 - LPから予約完了までの分割画面フローを実装し、直接アクセス時の戻し動作を統一する。
@@ -37,11 +37,11 @@
 ### Allowed Dependencies
 - T3 App App Router構成。
 - パッケージマネージャは`pnpm`。
-- Next.js App Router、React、TypeScript、Tailwind CSS。
+- Next.js App Router、React、TypeScript、Tailwind CSS import + custom CSS。
 - tRPC、Zod、TanStack Query。
 - 管理ログイン用のHTTP-only cookieと`.env`管理の管理者パスワードハッシュ。
 - Prisma Client、PostgreSQL。
-- Docker ComposeによるappコンテナとPostgreSQLコンテナ。
+- Docker Composeによる開発/本番相当コンテナ構成。
 - 本番想定としてAzure App Serviceの単一appコンテナと外部PostgreSQLを許容する。
 - Vitestによるユニット/統合テスト、PlaywrightによるE2Eテスト。
 
@@ -54,15 +54,15 @@
 ## Architecture
 
 ### Existing Architecture Analysis
-既存アプリケーションコードは存在しない。`README.md`、Kiro文書、テンプレートのみがあるgreenfieldであるため、T3 Appをリポジトリ直下に作成し、生成される`src`、`prisma`、設定ファイル群に本機能のドメインファイルを追加する。
+アプリケーションコードは実装済みであり、Next.js App Router、`src/features`配下のUI feature、`src/server`配下のAPI/service/repository、`src/shared`配下の共有型/安定属性定数で構成される。今後の変更では既存の層分離を維持し、UI変更は既存ロジックを壊さずfeature componentとCSSを中心に行う。
 
 ### Architecture Pattern & Boundary Map
 **Architecture Integration**:
 - Selected pattern: T3 App標準のApp Router UI + tRPC API + Prisma Repository。小さなフルスタック機能に対して過剰なレイヤーを避けつつ、UI、API、DB境界を明確にする。
 - Domain/feature boundaries: UIは表示と画面状態、tRPC routerは入出力契約、serviceは予約ルール、repositoryはDB永続化を担当する。
-- Existing patterns preserved: greenfieldのため既存パターンなし。Create T3 AppのApp Router構成に従う。
+- Existing patterns preserved: T3 AppのApp Router構成、feature単位のUI分割、server service/repository境界、共有schema/安定属性定数を維持する。
 - New components rationale: 予約フロー、店舗検索、枠表示、予約作成、管理一覧が複数画面とDB整合性をまたぐため、UIとサーバー境界を分ける。
-- Steering compliance: steering未整備のため、T3 App標準とspec要件を設計基準とする。
+- Steering compliance: `.kiro/steering`のT3 App、pnpm、型安全、server/client境界、安定HTML属性、複雑度制限、検証コマンド方針に従う。
 
 ```mermaid
 graph TB
@@ -82,28 +82,35 @@ graph TB
 
 | Layer | Choice / Version | Role in Feature | Notes |
 |-------|------------------|-----------------|-------|
-| Frontend | Next.js App Router 16系, React 19系, TypeScript strict, Tailwind CSS | LP、予約フロー、管理一覧UI | App RouterのファイルベースURLを使用 |
+| Frontend | Next.js App Router 16系, React 19系, TypeScript strict, Tailwind CSS import + custom CSS | LP、予約フロー、管理一覧UI | App RouterのファイルベースURLを使用 |
 | Backend / Services | tRPC 11系, Zod 4系 | 型安全なquery/mutationと入力検証 | Server ActionsではなくtRPCを主API境界にする |
 | Data / Storage | Prisma 6系, PostgreSQL | 店舗、予約枠、予約保存 | `Booking.slotId`一意制約で1枠1名を担保 |
 | Test | Vitest, Playwright | ユニット/統合テスト、E2Eテスト | `pnpm test`で実行できる構成にする |
 | Messaging / Events | なし | 対象外 | 通知、外部連携はOut of Boundary |
-| Infrastructure / Runtime | Docker Compose, Azure App Service single container想定, Node.js runtime, `.env` | 開発appコンテナ、開発PostgreSQLコンテナ、本番app単一コンテナ、環境変数管理 | 開発DB接続情報は`.env`、本番DBはNeonなど外部PostgreSQLの`DATABASE_URL`を想定 |
+| Infrastructure / Runtime | Docker Compose, Azure App Service single container想定, GitHub Actions, GHCR, Node.js runtime, `.env`/`.env.local` | 開発PostgreSQL、本番app単一コンテナ、環境変数管理、継続的デプロイ | 開発は`docker-compose.dev.yml`、本番は外部PostgreSQLの`DATABASE_URL`を想定し、`.env.local`は`.env`より優先される |
 
 ## File Structure Plan
 
 ### Directory Structure
 ```text
-docker-compose.yml                 # 開発用appサービスとdbサービスを定義するコンテナ構成
-Dockerfile                         # 開発appサービスとAzure App Service単一コンテナを兼ねるNode.js実行環境
+Dockerfile                         # Azure App Service/本番向け単一appコンテナ
+Dockerfile.dev                     # 開発コンテナ向けNode.js実行環境
+docker-compose.yml                 # 本番相当のapp/db構成
+docker-compose.dev.yml             # ローカル開発用app/db構成
+.github/workflows/
+└── ApiContainerDeploy.yml         # GHCR build/pushとAzure Web App deploy
 prisma/
 ├── schema.prisma                  # Store, AvailabilitySlot, BookingのDB schema
-└── seed.ts                        # 関東の架空店舗と30日分の予約可能枠の初期データ生成
+├── seed.ts                        # 関東の架空店舗と30日分の予約可能枠の初期データ生成
+├── generate-seed-sql.mjs          # SQL seed生成
+└── seed.sql                       # Neon SQL Editor/psql向け直接投入seed
 src/
 ├── app/
+│   ├── globals.css                # ベージュ×グリーン基調のLP/予約/管理UI
 │   ├── layout.tsx                 # アプリ共通レイアウト
 │   ├── page.tsx                   # LP
 │   ├── reservation/
-│   │   ├── page.tsx               # 都道府県選択、店舗選択、カレンダー、枠選択
+│   │   ├── page.tsx               # 都道府県選択、店舗選択、週カレンダー、枠選択
 │   │   ├── form/page.tsx          # 予約者情報入力
 │   │   ├── confirm/page.tsx       # 予約内容確認と送信
 │   │   └── thanks/page.tsx        # 完了画面と予約番号表示
@@ -112,17 +119,10 @@ src/
 │       └── bookings/
 │           ├── page.tsx           # 管理用店舗一覧
 │           └── [storeId]/page.tsx # 店舗別予約一覧
-├── app/_components/
-│   ├── landing-page.tsx           # LP主要セクション
-│   ├── store-selector.tsx         # 都道府県と店舗一覧
-│   ├── availability-calendar.tsx  # 30日分の空き枠カレンダー
-│   ├── reservation-form.tsx       # 予約者情報フォーム
-│   ├── reservation-summary.tsx    # 確認/完了共通サマリー
-│   ├── admin-login-form.tsx       # 管理者ログインフォーム
-│   ├── admin-store-list.tsx       # 管理用店舗一覧
-│   └── admin-bookings-table.tsx   # 店舗別予約一覧テーブル
-├── app/_state/
-│   └── reservation-draft-store.ts # React ContextとsessionStorageによる画面間の予約ドラフト状態
+├── features/
+│   ├── landing/                   # LP主要セクションとCTA
+│   ├── reservation/               # 予約ドラフト、店舗カード、週カレンダー、入力/確認UI
+│   └── admin/                     # 管理ログイン、店舗一覧、予約一覧UI
 ├── server/
 │   ├── api/
 │   │   ├── root.ts                # appRouter統合
@@ -150,10 +150,10 @@ src/
 ```
 
 ### Modified Files
-- `package.json`、`pnpm-lock.yaml` — T3 App生成後のscriptsとPrisma seed scriptを`pnpm`前提で管理する。
+- `package.json`、`pnpm-lock.yaml` — scripts、Prisma seed、lint/build/testを`pnpm`前提で管理する。
 - `.env.example` — `DATABASE_URL`、`POSTGRES_USER`、`POSTGRES_PASSWORD`、`POSTGRES_DB`、`POSTGRES_PORT`、`ADMIN_PASSWORD_HASH`、`ADMIN_SESSION_SECRET`を例示する。
-- `.gitignore` — `.env`をコミット対象外として扱う。
-- `README.md` — Docker Compose起動、Prisma migration、DB seed、確認URL、Azure App Service単一コンテナ想定を記載する。
+- `.gitignore` — `.env`と`.env.local`をコミット対象外として扱う。
+- `README.md` — Docker Compose起動、Prisma migration、DB seed、SQL seed、確認URL、Azure App Service単一コンテナ想定を記載する。
 
 ## System Flows
 
@@ -200,6 +200,7 @@ flowchart TD
 | 1.1 | LP情報表示 | LandingPage | UI props | 予約フロー |
 | 1.2 | 予約導線表示 | LandingPage | UI props | 予約フロー |
 | 1.3 | LPから予約画面へ遷移 | LandingPage | Next Link | 予約フロー |
+| 1.4 | LP CTAのbot_open | LandingPage | CSS class | スクレイピング |
 | 2.1 | `/reservation`統合画面 | ReservationPage | Draft State | 予約フロー |
 | 2.2 | 都道府県別店舗表示 | StoreSelector, storeRouter | `getStoresByPrefecture` | 予約フロー |
 | 2.3 | 店舗なし表示 | StoreSelector | UI state | 予約フロー |
@@ -207,6 +208,8 @@ flowchart TD
 | 2.5 | 関東固定の初期店舗件数 | seed, StoreRepository | seed dataset | 予約フロー |
 | 2.6 | 店舗選択状態 | StoreSelector, DraftState | Draft actions | 予約フロー |
 | 2.7 | 店舗未選択時の枠選択不可 | ReservationPage | UI guard | 予約フロー |
+| 2.8 | スクロール可能な店舗カード一覧 | StoreSelector | UI state | 予約フロー |
+| 2.9 | 選択中店舗の強調表示 | StoreSelector | UI state | 予約フロー |
 | 3.1 | 店舗情報表示 | StoreSelector | Store DTO | 予約フロー |
 | 3.2 | 24時間営業表示 | StoreSelector | Store DTO | 予約フロー |
 | 3.3 | 店舗主要情報 | StoreSelector | Store DTO | 予約フロー |
@@ -223,6 +226,8 @@ flowchart TD
 | 4.9 | 枠未選択時の遷移不可 | ReservationPage | UI guard | 予約フロー |
 | 4.10 | 枠なし表示 | AvailabilityCalendar | UI state | 予約フロー |
 | 4.11 | スタッフ予定更新なし | BookingService | non-goal guard | 競合制御 |
+| 4.12 | 選択中店舗/日時表示 | AvailabilityCalendar, ReservationPage | Draft State | 予約フロー |
+| 4.13 | 週切り替え操作 | AvailabilityCalendar | UI state | 予約フロー |
 | 5.1 | form遷移 | ReservationPage | Next router | 予約フロー |
 | 5.2 | 選択内容表示 | ReservationForm | Draft State | 予約フロー |
 | 5.3 | 入力フォーム | ReservationForm | Zod schema | 予約フロー |
@@ -270,30 +275,32 @@ flowchart TD
 | 9.4 | LP属性 | LandingPage | ScrapeIds | LP |
 | 9.5 | reservation一意属性 | ReservationPage | ScrapeIds | 予約フロー |
 | 9.6 | reservation反復属性 | StoreSelector, AvailabilityCalendar | ScrapeIds | 予約フロー |
-| 9.7 | form属性 | ReservationForm | ScrapeIds | 予約フロー |
-| 9.8 | confirm属性 | ReservationConfirm | ScrapeIds | 予約フロー |
-| 9.9 | thanks属性 | ThanksPage | ScrapeIds | 予約フロー |
-| 9.10 | admin login属性 | AdminLoginForm | ScrapeIds | 管理導線 |
-| 9.11 | admin store list属性 | AdminStoreList | ScrapeIds | 管理導線 |
-| 9.12 | admin store card属性 | AdminStoreList | ScrapeIds | 管理導線 |
-| 9.13 | admin table属性 | AdminBookingsTable | ScrapeIds | 管理一覧 |
-| 9.14 | booking row属性 | AdminBookingsTable | ScrapeIds | 管理一覧 |
-| 9.15 | booking field属性 | AdminBookingsTable | ScrapeIds | 管理一覧 |
+| 9.7 | 店舗カードdata属性 | StoreSelector | DOM data attributes | スクレイピング |
+| 9.8 | 空き枠data属性 | AvailabilityCalendar | DOM data attributes | スクレイピング |
+| 9.9 | form属性 | ReservationForm | ScrapeIds | 予約フロー |
+| 9.10 | confirm属性 | ReservationConfirm | ScrapeIds | 予約フロー |
+| 9.11 | thanks属性 | ThanksPage | ScrapeIds | 予約フロー |
+| 9.12 | admin login属性 | AdminLoginForm | ScrapeIds | 管理導線 |
+| 9.13 | admin store list属性 | AdminStoreList | ScrapeIds | 管理導線 |
+| 9.14 | admin store card属性 | AdminStoreList | ScrapeIds | 管理導線 |
+| 9.15 | admin table属性 | AdminBookingsTable | ScrapeIds | 管理一覧 |
+| 9.16 | booking row属性 | AdminBookingsTable | ScrapeIds | 管理一覧 |
+| 9.17 | booking field属性 | AdminBookingsTable | ScrapeIds | 管理一覧 |
 
 ## Components and Interfaces
 
 | Component | Domain/Layer | Intent | Req Coverage | Key Dependencies | Contracts |
 |-----------|--------------|--------|--------------|------------------|-----------|
-| LandingPage | UI | LP表示と予約導線 | 1.1, 1.2, 1.3, 9.4 | ScrapeIds P1 | State |
-| ReservationPage | UI | 店舗と枠選択 | 2.1-2.5, 4.1, 4.8, 4.9, 8.2, 9.5 | StoreSelector P0, AvailabilityCalendar P0 | State |
-| StoreSelector | UI | 都道府県と店舗表示 | 2.2-2.4, 3.1-3.5, 9.6 | storeRouter P0 | State |
-| AvailabilityCalendar | UI | 予約可能枠表示と選択 | 4.1-4.10, 9.6 | storeRouter P0, DraftState P0 | State |
-| ReservationForm | UI | 予約者情報入力 | 5.1-5.9, 9.7 | Zod schema P0, DraftState P0 | State |
-| ReservationConfirm | UI | 確認と送信 | 6.1-6.11, 9.8 | bookingRouter P0, DraftState P0 | State |
-| ThanksPage | UI | 完了と予約番号表示 | 6.3-6.5, 8.5, 9.9 | DraftState P1 | State |
-| AdminLoginForm | UI | 管理者ログイン | 7.1-7.3, 8.6, 9.10 | adminRouter P0 | State |
-| AdminStoreList | UI | 管理用店舗一覧 | 7.4, 7.5, 8.7, 9.11, 9.12 | adminRouter P0 | State |
-| AdminBookingsTable | UI | 店舗別予約一覧 | 7.6-7.10, 7.12, 8.8, 9.13-9.15 | adminRouter P0 | State |
+| LandingPage | UI | LP表示と予約導線 | 1.1, 1.2, 1.3, 1.4, 9.4 | ScrapeIds P1 | State |
+| ReservationPage | UI | 店舗と枠選択 | 2.1-2.9, 4.1, 4.8, 4.9, 4.12, 8.2, 9.5 | StoreSelector P0, AvailabilityCalendar P0 | State |
+| StoreSelector | UI | 都道府県と店舗表示 | 2.2-2.9, 3.1-3.5, 9.6, 9.7 | storeRouter P0 | State |
+| AvailabilityCalendar | UI | 予約可能枠表示と選択 | 4.1-4.13, 9.6, 9.8 | storeRouter P0, DraftState P0 | State |
+| ReservationForm | UI | 予約者情報入力 | 5.1-5.9, 9.9 | Zod schema P0, DraftState P0 | State |
+| ReservationConfirm | UI | 確認と送信 | 6.1-6.11, 9.10 | bookingRouter P0, DraftState P0 | State |
+| ThanksPage | UI | 完了と予約番号表示 | 6.3-6.5, 8.5, 9.11 | DraftState P1 | State |
+| AdminLoginForm | UI | 管理者ログイン | 7.1-7.3, 8.6, 9.12 | adminRouter P0 | State |
+| AdminStoreList | UI | 管理用店舗一覧 | 7.4, 7.5, 8.7, 9.13, 9.14 | adminRouter P0 | State |
+| AdminBookingsTable | UI | 店舗別予約一覧 | 7.6-7.10, 7.12, 8.8, 9.15-9.17 | adminRouter P0 | State |
 | reservation-draft-store | Client State | 画面間予約ドラフト保持 | 2.4, 4.8, 5.1, 5.8, 5.9, 6.8 | Zod schema P1 | State |
 | storeRouter | API | 店舗と枠の公開query | 2.2, 4.1 | StoreRepository P0 | API |
 | bookingRouter | API | 予約作成mutation | 6.2-6.7 | BookingService P0 | API |
@@ -303,7 +310,7 @@ flowchart TD
 | BookingService | Domain | 予約作成、競合、番号発行 | 4.6, 4.11, 6.2-6.11 | BookingRepository P0 | Service |
 | StoreRepository | Data | 店舗と枠読み取り | 2.2, 3.1, 4.1 | Prisma P0 | Service |
 | BookingRepository | Data | 予約保存と一覧 | 6.2, 6.7, 7.1-7.6 | Prisma P0 | Service |
-| ScrapeIds | Shared | 安定属性名の単一ソース | 9.1-9.12 | なし | State |
+| ScrapeIds | Shared | 安定属性名の単一ソース | 9.1-9.17 | なし | State |
 
 ### Shared Types
 ```typescript
@@ -526,7 +533,8 @@ interface CreateBookingOutput {
 - 全店舗共通10:00-20:00、1時間単位を期待する。
 - seedされた枠以外を動的生成しない。
 - 予約済み枠も返すが、`selectable: false`としてUIで選択不可にする。
-- 予約済み枠の表示文言は`予約済み`に固定する。
+- UIでは予約可能枠を`○`、予約不可または予約済み枠を`×`、選択済み枠を`✓`として表示できる状態を返す。
+- カレンダーは7日単位の週表示に切り出せるよう、`startsAt`と`selectable`を安定して返す。
 - 当日判定、30日先判定、画面表示用の日付時刻は`Asia/Tokyo`基準で扱う。
 
 **Contracts**: Service [x] / API [ ] / Event [ ] / Batch [ ] / State [ ]
@@ -669,7 +677,9 @@ interface AdminBookingRow {
 
 ### E2E/UI Tests
 - LP CTAから`/reservation`へ進み、都道府県、店舗、枠を選択して`/reservation/form`へ進む。
-- 予約済み枠がカレンダーに表示されるが選択できないことを確認する。
+- 予約可能枠が`○`、予約不可または予約済み枠が`×`で表示され、選択不可であることを確認する。
+- 選択済み枠が背景色と`✓`で強調され、選択中日時カードとCTA有効化に反映されることを確認する。
+- 店舗カードと空き枠の`data-store-id`、`data-store-name`、`data-prefecture`、`data-slot-id`、`data-starts-at`、`data-selectable`でスクレイピング対象を取得できることを確認する。
 - 必須項目未入力と不正なメール/電話番号で確認画面へ進めない。
 - `/reservation/confirm`から`/reservation/form`に戻っても入力値、選択店舗、選択枠が保持される。
 - 入力完了後に`/reservation/confirm`で内容を確認し、送信後`/reservation/thanks`で予約番号を見る。
@@ -696,10 +706,13 @@ interface AdminBookingRow {
 - リアルタイム在庫更新やpush通知はOut of Boundaryであるため、ポーリングやWebSocketは導入しない。
 
 ## Migration Strategy
-- greenfieldのため既存データ移行はない。
-- ローカル開発では`docker-compose.yml`でappコンテナとdbコンテナを起動する。
-- DB接続情報、PostgreSQLユーザー、パスワード、DB名、ポートは`.env`で管理し、`.env.example`にサンプル値を記載する。
+- 既存実装済みアプリのschemaを基準に、追加変更はPrisma migrationで管理する。
+- ローカル開発では`docker-compose.dev.yml`でPostgreSQLを起動し、appはホスト実行または開発コンテナ実行を許容する。
+- 本番相当のコンテナ構成は`docker-compose.yml`、Azure App Service向け単一appイメージは`Dockerfile`、開発用イメージは`Dockerfile.dev`で分ける。
+- DB接続情報、PostgreSQLユーザー、パスワード、DB名、ポートは`.env`または`.env.local`で管理し、`.env.local`が`.env`より優先される点をREADMEに明記する。
 - 初期構築時にappコンテナ内またはホストから`prisma migrate dev`でschemaを作成し、`prisma db seed`で関東の架空店舗と30日分の予約可能枠を投入する。
+- NeonなどでPrisma seedが不安定な場合は、`prisma/generate-seed-sql.mjs`で生成された`prisma/seed.sql`をSQL Editorまたは`psql`で直接投入する。
 - seedは再実行しても同じ店舗/枠を重複作成しないupsert方針にする。
-- 本番はAzure App Serviceの単一appコンテナと、Neonなどの外部PostgreSQLを`DATABASE_URL`で接続する想定に留める。
-- 本番デプロイ手順、マネージドDBの詳細運用、CI/CD上のmigration運用はこのspecのOut of Boundaryとする。
+- 本番はAzure App Serviceの単一appコンテナと、Neonなどの外部PostgreSQLを`DATABASE_URL`で接続する。
+- GitHub ActionsはGHCRへSHAタグのイメージをpushし、Azure Web App `sato-jay-gym`へそのイメージをデプロイする。workflow triggerはmain pushを基本に、アプリ関連pathへ絞る。
+- CI/CD上のmigration自動実行とマネージドDBの詳細運用はこのspecのOut of Boundaryとし、必要時は手動migrationまたはSQL投入で扱う。

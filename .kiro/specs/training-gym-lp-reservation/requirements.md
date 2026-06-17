@@ -6,7 +6,7 @@
 ## Boundary Context
 - **In scope**: LP、都道府県選択、店舗一覧、店舗選択、店舗情報表示、店舗ごとの予約可能枠表示、初期データとして定義された全店舗共通10:00-20:00の1時間単位かつ30日先までの体験予約枠、空き枠選択、予約者情報入力、予約内容確認画面、送信完了画面、予約番号表示、1枠1名の予約保存、最小限の管理ログイン、管理用店舗一覧、店舗別予約一覧表示、スクレイピング練習用の安定したHTML属性
 - **Out of scope**: 予約枠のリアルタイム在庫管理、スタッフ別スケジュール管理、複数管理者アカウント管理、ロール権限管理、オンライン決済、メール送信、SMS通知、外部カレンダー同期、CRM連携、予約ステータス管理
-- **Adjacent expectations**: 店舗と予約可能枠は初期データとして事前に定義された情報として表示され、予約送信によってスタッフ別予定は更新しない。全店舗の営業時間は24時間営業として表示し、予約枠は全店舗共通で10:00から20:00までの1時間単位、当日を含む30日先まで、かつ1枠1名限定とする。予約済み枠は`予約済み`として表示するが選択不可とし、2画面操作中に別ユーザーが同じ枠を先に予約した場合は送信時にエラーとして扱う
+- **Adjacent expectations**: 店舗と予約可能枠は初期データとして事前に定義された情報として表示され、予約送信によってスタッフ別予定は更新しない。全店舗の営業時間は24時間営業として表示し、予約枠は全店舗共通で10:00から20:00までの1時間単位、当日を含む30日先まで、かつ1枠1名限定とする。予約可能枠はカレンダー上で`○`、予約不可または予約済み枠は`×`として表示し、選択不可状態と安定属性で識別できるようにする。2画面操作中に別ユーザーが同じ枠を先に予約した場合は送信時にエラーとして扱う
 
 ## Requirements
 
@@ -17,6 +17,7 @@
 1. The 予約システム shall `/` でトレーニングジムの価値提案、主なプログラム、料金または体験訴求、アクセスに関する情報を表示する
 2. The 予約システム shall `/` で体験予約を開始するための導線を表示する
 3. When ユーザーがLPの予約導線を選択する, the 予約システム shall `/reservation` に遷移する
+4. The 予約システム shall LPの主要な体験予約導線にスクレイピング/ボット練習用の`bot_open`クラスを付与する
 
 ### Requirement 2: 都道府県と店舗の選択
 **Objective:** As a 見込み客, I want 都道府県から利用したい店舗を選びたい, so that 自分が通える店舗で体験予約を進められる
@@ -29,14 +30,16 @@
 5. The 予約システム shall 初期データとして東京都に10店舗、神奈川県・千葉県・埼玉県に各4店舗、栃木県・群馬県・茨城県に各1店舗を持つ
 6. When ユーザーが店舗を選択する, the 予約システム shall 選択店舗が分かる状態を表示する
 7. While 店舗が未選択である, the 予約システム shall 空き枠選択を完了できない状態にする
+8. The 予約システム shall 店舗一覧をカード形式で表示し、画面全体を押し下げないようにスクロール可能な領域として扱う
+9. The 予約システム shall 選択中店舗をバッジ、背景色、枠線などで通常店舗より明確に識別できるようにする
 
 ### Requirement 3: 店舗情報の表示
 **Objective:** As a 見込み客, I want 店舗の詳細情報を確認したい, so that 予約前に自分に合う店舗か判断できる
 
 #### Acceptance Criteria
-1. The 予約システム shall 店舗ごとに店舗名、都道府県、アクセス、営業時間、設備、対応プログラム、料金を表示できる
+1. The 予約システム shall 店舗ごとに店舗名、都道府県、アクセス、営業時間、設備、対応プログラム、料金を保持できる
 2. The 予約システム shall 全店舗の営業時間を24時間営業として表示する
-3. When ユーザーが店舗一覧を閲覧する, the 予約システム shall 店舗選択に必要な主要情報を表示する
+3. When ユーザーが店舗一覧を閲覧する, the 予約システム shall 店舗名、駅徒歩、主要特徴など店舗選択に必要な情報へ整理して表示する
 4. When ユーザーが店舗を選択する, the 予約システム shall 選択店舗の詳細情報を確認できる状態にする
 5. If 店舗情報の一部が未登録である, then the 予約システム shall 未登録項目によって予約フロー全体が停止しないように表示する
 
@@ -44,17 +47,19 @@
 **Objective:** As a 見込み客, I want 選択店舗の予約可能日時をカレンダーで選びたい, so that 希望する体験日時を指定できる
 
 #### Acceptance Criteria
-1. When ユーザーが店舗を選択する, the 予約システム shall 選択店舗に定義された予約可能枠をカレンダー形式で表示する
+1. When ユーザーが店舗を選択する, the 予約システム shall 選択店舗に定義された予約可能枠を、横軸に7日分の日付、縦軸に時刻を置く週単位のカレンダー形式で表示する
 2. The 予約システム shall 予約可能枠を初期データとして定義された枠から表示する
 3. The 予約システム shall 予約可能枠を全店舗共通で10:00から20:00までの時間帯として扱う
 4. The 予約システム shall 予約可能枠を当日を含む30日先までの範囲で表示する
 5. The 予約システム shall 予約可能枠を1時間単位の日付と時刻が分かる形式で表示する
 6. The 予約システム shall 予約可能枠を1枠1名限定として扱う
-7. The 予約システム shall 予約済み枠をカレンダー上に`予約済み`として表示するが選択不可として扱う
-8. When ユーザーが予約可能枠を選択する, the 予約システム shall 選択された空き枠を識別できる状態で表示する
-9. While 空き枠が未選択である, the 予約システム shall `/reservation/form` へ進む操作を完了できない状態にする
+7. The 予約システム shall 予約済み枠または選択不可枠をカレンダー上に`×`として表示し、disabled状態として扱う
+8. When ユーザーが予約可能枠を選択する, the 予約システム shall 選択された空き枠を背景色と`✓`で識別できる状態で表示する
+9. While 空き枠が未選択である, the 予約システム shall `/reservation/form` へ進む操作を完了できないdisabled状態にする
 10. If 選択店舗に予約可能枠が存在しない, then the 予約システム shall 選択可能な枠がないことをユーザーに表示する
 11. The 予約システム shall 予約送信時にスタッフ別予定の更新を行わない
+12. The 予約システム shall カレンダー上部または周辺に選択中店舗と選択中日時を確認できる表示を提供する
+13. The 予約システム shall 7日単位で前の週、次の週へ切り替えられる操作を提供する
 
 ### Requirement 5: 予約者情報入力
 **Objective:** As a 見込み客, I want 選択内容を確認して予約者情報を入力したい, so that 正しい内容で体験予約を送信できる
@@ -127,12 +132,14 @@
 4. The 予約システム shall LP主要セクションに`hero`、`programs`、`pricing`、`trainers`、`access`、`faq`、`reservation-cta`を識別できる`id`属性を付与する
 5. The 予約システム shall `/reservation` の一意要素に`prefecture-select`、`store-list`、`availability-calendar`、`selected-slot`、`reservation-next-button`を識別できる`id`属性を付与する
 6. The 予約システム shall `/reservation` の繰り返し要素に`store-card`、`available-slot`を識別できる`data-scrape`属性を付与する
-7. The 予約システム shall `/reservation/form` の一意要素に`reservation-form`、`customer-name`、`customer-email`、`customer-phone`、`training-goal`、`customer-note`、`reservation-submit-button`を識別できる`id`属性を付与する
-8. The 予約システム shall `/reservation/confirm` の一意要素に`reservation-confirm`、`reservation-confirm-submit-button`を識別できる`id`属性を付与する
-9. The 予約システム shall `/reservation/thanks` の一意要素に`reservation-thanks`、`reservation-summary`、`reservation-number`を識別できる`id`属性を付与する
-10. The 予約システム shall `/admin/login` の一意要素に`admin-login-form`、`admin-password`、`admin-login-button`を識別できる`id`属性を付与する
-11. The 予約システム shall `/admin/bookings` の一意要素に`admin-store-list`を識別できる`id`属性を付与する
-12. The 予約システム shall `/admin/bookings` の繰り返し要素に`admin-store-card`を識別できる`data-scrape`属性を付与する
-13. The 予約システム shall `/admin/bookings/{storeId}` の一意要素に`admin-bookings-table`を識別できる`id`属性を付与する
-14. The 予約システム shall `/admin/bookings/{storeId}` の繰り返し要素に`booking-row`を識別できる`data-scrape`属性を付与する
-15. The 予約システム shall `/admin/bookings/{storeId}` の予約行内の項目に`booking-store`、`booking-datetime`、`booking-customer-name`、`booking-customer-email`、`booking-customer-phone`を識別できる`data-scrape`属性を付与する
+7. The 予約システム shall `/reservation` の店舗カードに`data-store-id`、`data-store-name`、`data-prefecture`など店舗特定に必要な安定属性を付与する
+8. The 予約システム shall `/reservation` の空き枠要素に`data-slot-id`、`data-store-id`、`data-starts-at`、`data-selectable`など枠特定と選択可否に必要な安定属性を付与する
+9. The 予約システム shall `/reservation/form` の一意要素に`reservation-form`、`customer-name`、`customer-email`、`customer-phone`、`training-goal`、`customer-note`、`reservation-submit-button`を識別できる`id`属性を付与する
+10. The 予約システム shall `/reservation/confirm` の一意要素に`reservation-confirm`、`reservation-confirm-submit-button`を識別できる`id`属性を付与する
+11. The 予約システム shall `/reservation/thanks` の一意要素に`reservation-thanks`、`reservation-summary`、`reservation-number`を識別できる`id`属性を付与する
+12. The 予約システム shall `/admin/login` の一意要素に`admin-login-form`、`admin-password`、`admin-login-button`を識別できる`id`属性を付与する
+13. The 予約システム shall `/admin/bookings` の一意要素に`admin-store-list`を識別できる`id`属性を付与する
+14. The 予約システム shall `/admin/bookings` の繰り返し要素に`admin-store-card`を識別できる`data-scrape`属性を付与する
+15. The 予約システム shall `/admin/bookings/{storeId}` の一意要素に`admin-bookings-table`を識別できる`id`属性を付与する
+16. The 予約システム shall `/admin/bookings/{storeId}` の繰り返し要素に`booking-row`を識別できる`data-scrape`属性を付与する
+17. The 予約システム shall `/admin/bookings/{storeId}` の予約行内の項目に`booking-store`、`booking-datetime`、`booking-customer-name`、`booking-customer-email`、`booking-customer-phone`を識別できる`data-scrape`属性を付与する

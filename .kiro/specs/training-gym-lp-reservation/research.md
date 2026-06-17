@@ -4,7 +4,7 @@
 - **Feature**: `training-gym-lp-reservation`
 - **Discovery Scope**: New Feature
 - **Key Findings**:
-  - リポジトリはREADMEとKiro文書のみのgreenfieldであり、T3 Appをリポジトリ直下に新規アプリ基盤として作成する設計が必要。
+  - リポジトリにはT3 App構成の実装が追加済みであり、今後の設計判断は既存の`src/app`、`src/features`、`src/server`、`prisma`構成へ追従する必要がある。
   - Create T3 AppのApp Router構成は、`src/app`をルーティング、`src/server`をサーバー専用コード、`prisma/schema.prisma`をDBスキーマとして分離する前提に合う。
   - 1枠1名の競合防止は、予約可能枠IDに対する予約の一意制約と、予約作成時の原子的な保存処理で扱う。
   - 本機能はスクレイピング練習用の架空LPであり、seedは関東地方の架空店舗に限定する。
@@ -73,22 +73,22 @@
 
 ## Design Decisions
 
-### Decision: T3 App標準構成で新規作成する
-- **Context**: 既存アプリがなく、T3 App + PostgreSQLが要求されている。
+### Decision: T3 App標準構成を維持する
+- **Context**: 既存実装はT3 App + PostgreSQLで構築済みであり、今後の拡張でもこの構成を崩さない。
 - **Alternatives Considered**:
   1. 手動Next.js構成
   2. T3 App標準構成
-- **Selected Approach**: リポジトリ直下にCreate T3 AppのApp Router、tRPC、Prisma、Tailwind CSS、TypeScript構成を作成する。
+- **Selected Approach**: リポジトリ直下のNext.js App Router、tRPC、Prisma、Tailwind CSS import + custom CSS、TypeScript構成を維持する。
 - **Rationale**: 必要な型安全性、ルーティング、DB接続、API境界が揃う。
-- **Trade-offs**: 初期生成ファイルが多くなるが、後続実装の一貫性が高い。
-- **Follow-up**: 実装時にNextAuthは選択しない。
+- **Trade-offs**: feature/UI、server、sharedの境界を守る必要があるが、後続実装の一貫性が高い。
+- **Follow-up**: NextAuthは導入せず、現在の単一管理パスワード方式を維持する。
 
 ### Decision: 予約競合は予約データの一意制約で防ぐ
 - **Context**: リアルタイム在庫管理はOutだが、1枠1名限定はIn。
 - **Alternatives Considered**:
   1. カレンダー表示時に枠をロックする
   2. 予約送信時に一意制約で確定する
-- **Selected Approach**: `Booking.slotId`を一意にし、予約済み枠は`予約済み`表示で選択不可にし、送信時に既予約なら競合エラー`枠が埋まりましたので別の日時を選んでください`を返す。
+- **Selected Approach**: `Booking.slotId`を一意にし、予約可能枠は`○`、予約不可または予約済み枠は`×`表示で選択不可にし、送信時に既予約なら競合エラー`枠が埋まりましたので別の日時を選んでください`を返す。
 - **Rationale**: 2画面操作中の競合要件に合い、予約枠ロックやリアルタイム在庫管理を導入しない。
 - **Trade-offs**: カレンダー表示後に枠が取られる可能性は残るが、要件上は送信時エラーで十分。
 - **Follow-up**: 競合エラーのUI文言とE2Eテストを実装時に確認する。
@@ -105,16 +105,16 @@
 - **Trade-offs**: ブラウザ内の一時状態なので別端末共有はできない。直接アクセス時にドラフトがなければ`/reservation`に戻す。
 - **Follow-up**: 実装時に状態消失時のredirectと、送信時のサーバー側枠再検証を統一する。
 
-### Decision: ローカル開発はappとDBのDocker Compose構成にする
+### Decision: ローカル開発と本番相当のDocker構成を分ける
 - **Context**: PostgreSQLが必須であり、環境差を抑えて実装、migration、seed、E2E確認を行う必要がある。
 - **Alternatives Considered**:
   1. ホストOSにPostgreSQLを直接インストール
   2. DBのみDocker、appはホストで実行
   3. appとDBをDocker Composeで起動
-- **Selected Approach**: `docker-compose.yml`でappサービスとdbサービスを定義し、DB情報は`.env`で管理する。
-- **Rationale**: appとDBの起動手順を揃えられ、Prisma migrationとseedの再現性が高い。
-- **Trade-offs**: Docker環境が前提になるが、READMEでホスト実行の補足は可能。
-- **Follow-up**: `.env.example`に`DATABASE_URL`とPostgreSQL関連変数を記載し、`.env`はコミットしない。
+- **Selected Approach**: `docker-compose.dev.yml`をローカル開発用、`docker-compose.yml`を本番相当構成として分ける。DB情報は`.env`または`.env.local`で管理し、ホスト実行時は`.env.local`が`.env`より優先される。
+- **Rationale**: 開発用と本番相当の責務を分けつつ、Prisma migrationとseedの再現性を保てる。
+- **Trade-offs**: 環境変数の優先順位に注意が必要だが、READMEとspecで明示すれば切り分けしやすい。
+- **Follow-up**: `.env.example`に`DATABASE_URL`とPostgreSQL関連変数を記載し、`.env`と`.env.local`はコミットしない。
 
 ### Decision: パッケージマネージャとテスト基盤を固定する
 - **Context**: T3 App、Prisma、Playwright、Dockerを組み合わせるため、実装時のコマンドと依存解決を固定する必要がある。
@@ -155,10 +155,10 @@
   1. 本番もappとDBを同一Composeで運用
   2. Azure App Service単一コンテナ + 外部PostgreSQL
   3. 本番戦略を未定にする
-- **Selected Approach**: DockerfileはAzure App Service単一コンテナにも使える前提にし、本番DBは`DATABASE_URL`で外部PostgreSQLへ接続する。
+- **Selected Approach**: `Dockerfile`はAzure App Service単一コンテナ向けに使い、本番DBは`DATABASE_URL`で外部PostgreSQLへ接続する。GitHub ActionsでGHCRへSHAタグのイメージをpushし、Azure Web App `sato-jay-gym`へデプロイする。
 - **Rationale**: appとDBの責務を本番で分離でき、NeonなどのマネージドPostgreSQLに接続しやすい。
-- **Trade-offs**: 本番デプロイ手順とCI/CD migration運用は別途設計が必要。
-- **Follow-up**: 今回のタスクでは本番デプロイ自体は実装対象外にする。
+- **Trade-offs**: CI/CD上のmigration自動実行は別途設計が必要。
+- **Follow-up**: migration/seedは手動実行またはSQL投入で扱い、workflow triggerはmain push + アプリ関連pathへ絞る。
 
 ### Decision: seedは関東の架空店舗に限定する
 - **Context**: スクレイピング練習用の架空LPであり、実在店舗や実運用と混同されないサンプルデータが必要。
