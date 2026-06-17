@@ -1,0 +1,59 @@
+{
+  "name": "satojay-gym",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.26.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start --hostname 0.0.0.0 --port ${PORT:-80}",
+    "lint": "eslint .",
+    "test": "vitest run && playwright test",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:deploy:local": "set -a && . ./.env.local && set +a && prisma migrate deploy",
+    "prisma:seed": "prisma db seed"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.0",
+    "@tanstack/react-query": "^5.90.0",
+    "@trpc/client": "^11.7.0",
+    "@trpc/react-query": "^11.7.0",
+    "@trpc/server": "^11.7.0",
+    "bcryptjs": "^3.0.2",
+    "lucide-react": "^0.555.0",
+    "next": "^16.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "server-only": "^0.0.1",
+    "superjson": "^2.2.2",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@playwright/test": "^1.57.0",
+    "@types/node": "^24.10.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "eslint": "^9.39.0",
+    "eslint-config-next": "^16.0.0",
+    "@tailwindcss/postcss": "^4.1.0",
+    "prisma": "^6.19.0",
+    "tailwindcss": "^4.1.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.47.0",
+    "vitest": "^4.0.0"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "volta": {
+    "node": "24.11.1",
+    "pnpm": "10.26.0"
+  }
+}
