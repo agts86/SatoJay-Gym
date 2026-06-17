@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowRight, Building2, CalendarDays, ChevronRight, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { AvailabilitySlotView, Prefecture, StoreSummary } from "~/shared/reservation-types";
@@ -39,24 +40,15 @@ export function ReservationSelectClient({ storesByPrefecture, slotsByStore }: Re
 
         <section className="reservation-calendar-panel">
           <div className="calendar-heading">
-            <div>
-              <h2>空きカレンダー</h2>
-              <p className="selected-store-name">
-                {draft.store ? draft.store.name : "店舗を選択すると空き枠が表示されます"}
-              </p>
-            </div>
             <p className="muted">10:00〜20:00 / 1時間枠</p>
           </div>
+          <SelectionSummary slot={draft.slot} store={draft.store} />
           <AvailabilityCalendar
             selectedSlotId={draft.slot?.id}
             slots={slots}
             storeSelected={Boolean(draft.store)}
             onSelect={setSlot}
           />
-          <div id={scrapeIds.reservation.selectedSlot} className="selected-slot-card">
-            <span>選択中の日時</span>
-            <strong>{draft.slot ? toTokyoDisplay(draft.slot.startsAt) : "未選択"}</strong>
-          </div>
           <button
             className="button reservation-next-button"
             data-testid="reservation-next-button"
@@ -65,11 +57,39 @@ export function ReservationSelectClient({ storesByPrefecture, slotsByStore }: Re
             onClick={() => router.push("/reservation/form")}
             type="button"
           >
-            無料体験を予約する →
+            <CalendarDays size={26} aria-hidden />
+            無料体験を予約する
+            <ArrowRight size={24} aria-hidden />
           </button>
+          {!draft.slot ? <p className="reservation-next-help">日時を選択するとボタンを押せるようになります</p> : null}
         </section>
       </div>
     </main>
+  );
+}
+
+function SelectionSummary({ slot, store }: { slot?: AvailabilitySlotView; store?: StoreSummary }) {
+  return (
+    <div className="reservation-selection-summary">
+      <article className="selection-summary-card" data-testid="selected-store">
+        <span>選択中の店舗</span>
+        <div className="selection-summary-main">
+          <MapPin size={22} aria-hidden />
+          <div>
+            <strong>{store?.name ?? "店舗を選択してください"}</strong>
+          </div>
+          <Building2 className="selection-summary-bg-icon" size={42} aria-hidden />
+        </div>
+      </article>
+      <ChevronRight className="selection-summary-arrow" size={24} aria-hidden />
+      <article id={scrapeIds.reservation.selectedSlot} className="selection-summary-card selected-slot-card">
+        <span>選択中の日時</span>
+        <div className="selection-summary-main">
+          <CalendarDays size={23} aria-hidden />
+          <strong>{slot ? `✓ ${toTokyoDisplay(slot.startsAt)}` : "日時を選択してください"}</strong>
+        </div>
+      </article>
+    </div>
   );
 }
 
@@ -121,7 +141,10 @@ function StoreList({
         return (
           <button
             className={selected ? "store-card selected" : "store-card"}
+            data-prefecture={store.prefecture}
             data-scrape={scrapeIds.reservation.storeCard}
+            data-store-id={store.id}
+            data-store-name={store.name}
             data-testid="store-card"
             key={store.id}
             onClick={() => onSelect(store)}
@@ -132,7 +155,13 @@ function StoreList({
               {selected ? <span className="selected-badge">選択中</span> : null}
             </span>
             <span className="store-access">{store.access}</span>
-            <span className="store-feature">{store.programs.slice(0, 3).join(" / ")}</span>
+            <span className="store-feature-list">
+              {store.programs.slice(0, 3).map((program) => (
+                <span className="store-feature" key={program}>
+                  {program}
+                </span>
+              ))}
+            </span>
           </button>
         );
       })}
@@ -212,11 +241,15 @@ function AvailabilityCalendar({
                             aria-label={`${formatDateLabel(day.dateKey)} ${time} ${slot.label}`}
                             className={selectedSlotId === slot.id ? "calendar-slot selected" : "calendar-slot"}
                             data-scrape={scrapeIds.reservation.availableSlot}
+                            data-selectable={slot.selectable ? "true" : "false"}
+                            data-slot-id={slot.id}
+                            data-starts-at={slot.startsAt}
+                            data-store-id={slot.storeId}
                             disabled={!slot.selectable}
                             onClick={() => onSelect(slot)}
                             type="button"
                           >
-                            {slot.selectable ? "○" : "×"}
+                            {selectedSlotId === slot.id ? "✓" : slot.selectable ? "○" : "×"}
                           </button>
                         </td>
                       );
