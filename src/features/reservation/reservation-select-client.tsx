@@ -1,11 +1,11 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import type { AvailabilitySlotView, Prefecture, StoreSummary } from "~/shared/reservation-types";
 import { KANTO_PREFECTURES } from "~/shared/reservation-types";
 import { scrapeIds } from "~/shared/scrape-ids";
-import { toTokyoDisplay } from "~/shared/tokyo-date";
+import { formatTokyoDateKey, toTokyoDisplay } from "~/shared/tokyo-date";
 import { useReservationDraft } from "./reservation-draft-store";
 
 interface ReservationSelectClientProps {
@@ -22,39 +22,69 @@ export function ReservationSelectClient({ storesByPrefecture, slotsByStore }: Re
 
   return (
     <main className="page-shell">
-      <h1 className="section-title">体験予約</h1>
-      <div className="grid two">
-        <section className="grid">
+      <div className="reservation-page-header">
+        <div className="reservation-title-block">
+          <p className="eyebrow">Trial Reservation</p>
+          <h1 className="section-title">無料体験予約</h1>
+        </div>
+        <StepIndicator />
+      </div>
+
+      <div className="reservation-layout">
+        <section className="reservation-store-panel">
           <PrefectureSelect prefecture={prefecture} onChange={setPrefecture} />
 
           <StoreList selectedStoreId={draft.store?.id} stores={stores} onSelect={setStore} />
         </section>
 
-        <section>
-          <h2>空きカレンダー</h2>
+        <section className="reservation-calendar-panel">
+          <div className="calendar-heading">
+            <div>
+              <h2>空きカレンダー</h2>
+              <p className="selected-store-name">
+                {draft.store ? draft.store.name : "店舗を選択すると空き枠が表示されます"}
+              </p>
+            </div>
+            <p className="muted">10:00〜20:00 / 1時間枠</p>
+          </div>
           <AvailabilityCalendar
             selectedSlotId={draft.slot?.id}
             slots={slots}
             storeSelected={Boolean(draft.store)}
             onSelect={setSlot}
           />
-          <div id={scrapeIds.reservation.selectedSlot} className="card" style={{ marginTop: 18 }}>
-            {draft.slot ? toTokyoDisplay(draft.slot.startsAt) : "未選択"}
+          <div id={scrapeIds.reservation.selectedSlot} className="selected-slot-card">
+            <span>選択中の日時</span>
+            <strong>{draft.slot ? toTokyoDisplay(draft.slot.startsAt) : "未選択"}</strong>
           </div>
           <button
-            className="button"
+            className="button reservation-next-button"
+            data-testid="reservation-next-button"
             disabled={!draft.store || !draft.slot}
             id={scrapeIds.reservation.nextButton}
             onClick={() => router.push("/reservation/form")}
-            style={{ marginTop: 18 }}
             type="button"
           >
-            次へ
-            <ArrowRight size={18} aria-hidden />
+            無料体験を予約する →
           </button>
         </section>
       </div>
     </main>
+  );
+}
+
+function StepIndicator() {
+  const steps = ["店舗選択", "日時選択", "情報入力", "完了"];
+
+  return (
+    <ol className="reservation-steps" aria-label="予約ステップ" data-testid="reservation-steps">
+      {steps.map((step, index) => (
+        <li className={index < 2 ? "active" : undefined} key={step}>
+          <span>{index + 1}</span>
+          <strong>{step}</strong>
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -83,24 +113,29 @@ function StoreList({
   onSelect: (store: StoreSummary) => void;
 }) {
   return (
-    <div id={scrapeIds.reservation.storeList} className="grid">
+    <div id={scrapeIds.reservation.storeList} className="store-list" data-testid="store-list">
       {stores.length === 0 ? <p className="muted">該当店舗がありません。</p> : null}
-      {stores.map((store) => (
-        <button
-          className="card"
-          data-scrape={scrapeIds.reservation.storeCard}
-          key={store.id}
-          onClick={() => onSelect(store)}
-          style={{ textAlign: "left", borderColor: selectedStoreId === store.id ? "var(--accent)" : undefined }}
-          type="button"
-        >
-          <strong>{store.name}</strong>
-          <p className="muted">{store.access}</p>
-          <p>{store.businessHours}</p>
-          <p>{store.programs.join(" / ")}</p>
-          <p>{store.priceText}</p>
-        </button>
-      ))}
+      {stores.map((store) => {
+        const selected = selectedStoreId === store.id;
+
+        return (
+          <button
+            className={selected ? "store-card selected" : "store-card"}
+            data-scrape={scrapeIds.reservation.storeCard}
+            data-testid="store-card"
+            key={store.id}
+            onClick={() => onSelect(store)}
+            type="button"
+          >
+            <span className="store-card-header">
+              <strong>{store.name}</strong>
+              {selected ? <span className="selected-badge">選択中</span> : null}
+            </span>
+            <span className="store-access">{store.access}</span>
+            <span className="store-feature">{store.programs.slice(0, 3).join(" / ")}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -116,24 +151,160 @@ function AvailabilityCalendar({
   storeSelected: boolean;
   onSelect: (slot: AvailabilitySlotView) => void;
 }) {
+  const calendarWeeks = buildCalendarWeeks(slots);
+  const [weekIndex, setWeekIndex] = useState(0);
+  const currentWeekIndex = Math.min(weekIndex, Math.max(calendarWeeks.length - 1, 0));
+  const currentWeek = calendarWeeks[currentWeekIndex];
+
   return (
-    <div id={scrapeIds.reservation.availabilityCalendar} className="grid" style={{ maxHeight: 620, overflow: "auto" }}>
+    <div id={scrapeIds.reservation.availabilityCalendar} className="availability-calendar">
       {!storeSelected ? <p className="muted">店舗を選択してください。</p> : null}
       {storeSelected && slots.length === 0 ? <p className="muted">選択可能な枠がありません。</p> : null}
-      {slots.map((slot) => (
-        <button
-          className="card"
-          data-scrape={scrapeIds.reservation.availableSlot}
-          disabled={!slot.selectable}
-          key={slot.id}
-          onClick={() => onSelect(slot)}
-          style={{ borderColor: selectedSlotId === slot.id ? "var(--signal)" : undefined }}
-          type="button"
-        >
-          <strong>{toTokyoDisplay(slot.startsAt)}</strong>
-          <span style={{ marginLeft: 12 }}>{slot.label}</span>
-        </button>
-      ))}
+      {currentWeek ? (
+        <section className="calendar-week">
+          <header className="calendar-week-header">
+            <button
+              className="calendar-nav-button"
+              disabled={currentWeekIndex === 0}
+              onClick={() => setWeekIndex((current) => Math.max(current - 1, 0))}
+              type="button"
+            >
+              前の週
+            </button>
+            <div>
+              <span>{currentWeek.weekLabel}</span>
+              <small>{currentWeek.availableCount}枠 空き</small>
+            </div>
+            <button
+              className="calendar-nav-button"
+              disabled={currentWeekIndex >= calendarWeeks.length - 1}
+              onClick={() => setWeekIndex((current) => Math.min(current + 1, calendarWeeks.length - 1))}
+              type="button"
+            >
+              次の週
+            </button>
+          </header>
+          <div className="calendar-table-wrap">
+            <table className="calendar-table">
+              <thead>
+                <tr>
+                  <th scope="col">時間</th>
+                  {currentWeek.days.map((day) => (
+                    <th key={day.dateKey} scope="col">
+                      <span>{formatMonthDayLabel(day.dateKey)}</span>
+                      <small>{formatWeekdayLabel(day.dateKey)}</small>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {currentWeek.times.map((time) => (
+                  <tr key={time}>
+                    <th scope="row">{time}</th>
+                    {currentWeek.days.map((day) => {
+                      const slot = day.slotsByTime.get(time);
+                      if (!slot) {
+                        return <td key={`${day.dateKey}-${time}`}>—</td>;
+                      }
+                      return (
+                        <td key={slot.id}>
+                          <button
+                            aria-label={`${formatDateLabel(day.dateKey)} ${time} ${slot.label}`}
+                            className={selectedSlotId === slot.id ? "calendar-slot selected" : "calendar-slot"}
+                            data-scrape={scrapeIds.reservation.availableSlot}
+                            disabled={!slot.selectable}
+                            onClick={() => onSelect(slot)}
+                            type="button"
+                          >
+                            {slot.selectable ? "○" : "×"}
+                          </button>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
+}
+
+function buildCalendarWeeks(slots: AvailabilitySlotView[]): {
+  availableCount: number;
+  days: { dateKey: string; slotsByTime: Map<string, AvailabilitySlotView> }[];
+  times: string[];
+  weekLabel: string;
+}[] {
+  const groupedByDate = new Map<string, AvailabilitySlotView[]>();
+  for (const slot of slots) {
+    const dateKey = formatTokyoDateKey(new Date(slot.startsAt));
+    groupedByDate.set(dateKey, [...(groupedByDate.get(dateKey) ?? []), slot]);
+  }
+
+  const dateKeys = [...groupedByDate.keys()].sort();
+  const weeks: string[][] = [];
+  for (let index = 0; index < dateKeys.length; index += 7) {
+    weeks.push(dateKeys.slice(index, index + 7));
+  }
+
+  return weeks.map((weekDateKeys) => {
+    const days = weekDateKeys.map((dateKey) => {
+      const slotsByTime = new Map<string, AvailabilitySlotView>();
+      for (const slot of groupedByDate.get(dateKey) ?? []) {
+        slotsByTime.set(formatTimeLabel(slot.startsAt), slot);
+      }
+      return { dateKey, slotsByTime };
+    });
+    const times = [...new Set(days.flatMap((day) => [...day.slotsByTime.keys()]))].sort();
+    return {
+      availableCount: days.reduce(
+        (count, day) => count + [...day.slotsByTime.values()].filter((slot) => slot.selectable).length,
+        0,
+      ),
+      days,
+      times,
+      weekLabel: `${formatDateLabel(weekDateKeys[0])}〜${formatDateLabel(weekDateKeys[weekDateKeys.length - 1])}`,
+    };
+  });
+}
+
+function formatDateLabel(dateKey: string): string {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  return new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+  }).format(date);
+}
+
+function formatMonthDayLabel(dateKey: string): string {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  return new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    month: "numeric",
+    day: "numeric",
+  }).format(date);
+}
+
+function formatWeekdayLabel(dateKey: string): string {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  return new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    weekday: "short",
+  }).format(date);
+}
+
+function formatTimeLabel(date: string): string {
+  return new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(date));
 }
