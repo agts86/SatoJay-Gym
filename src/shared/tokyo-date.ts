@@ -1,12 +1,8 @@
-const tokyoFormatter = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "Asia/Tokyo",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
+const tokyoOffsetMs = 9 * 60 * 60 * 1000;
 
 export function formatTokyoDateKey(date: Date): string {
-  return tokyoFormatter.format(date);
+  const parts = toTokyoParts(date);
+  return `${parts.year}-${pad2(parts.month)}-${pad2(parts.day)}`;
 }
 
 export function addDaysTokyo(dateKey: string, days: number): string {
@@ -21,14 +17,13 @@ export function createTokyoSlotUtc(dateKey: string, hour: number): Date {
 }
 
 export function toTokyoDisplay(date: string | Date): string {
-  return new Intl.DateTimeFormat("ja-JP", {
-    timeZone: "Asia/Tokyo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(date));
+  const parts = toTokyoParts(new Date(date));
+  return `${parts.year}/${pad2(parts.month)}/${pad2(parts.day)} ${pad2(parts.hour)}:${pad2(parts.minute)}`;
+}
+
+export function formatTokyoTime(date: string | Date): string {
+  const parts = toTokyoParts(new Date(date));
+  return `${pad2(parts.hour)}:${pad2(parts.minute)}`;
 }
 
 export function getTokyoDateRange(now: Date): { from: Date; to: Date } {
@@ -51,4 +46,19 @@ function parseDateKey(dateKey: string): { year: number; month: number; day: numb
   }
 
   return { year, month, day };
+}
+
+function toTokyoParts(date: Date): { year: number; month: number; day: number; hour: number; minute: number } {
+  const tokyoDate = new Date(date.getTime() + tokyoOffsetMs);
+  return {
+    year: tokyoDate.getUTCFullYear(),
+    month: tokyoDate.getUTCMonth() + 1,
+    day: tokyoDate.getUTCDate(),
+    hour: tokyoDate.getUTCHours(),
+    minute: tokyoDate.getUTCMinutes(),
+  };
+}
+
+function pad2(value: number): string {
+  return String(value).padStart(2, "0");
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createTokyoSlotUtc, formatTokyoDateKey, getTokyoDateRange, toTokyoDisplay } from "~/shared/tokyo-date";
+import { createTokyoSlotUtc, formatTokyoDateKey, formatTokyoTime, getTokyoDateRange, toTokyoDisplay } from "~/shared/tokyo-date";
 
 describe("tokyo-date", () => {
   it("formats business dates in Asia/Tokyo", () => {
@@ -19,6 +19,7 @@ describe("tokyo-date", () => {
   });
 
   it("displays reservation datetime in Japanese Tokyo time", () => {
-    expect(toTokyoDisplay("2026-06-16T01:00:00.000Z")).toContain("2026/06/16");
+    expect(toTokyoDisplay("2026-06-16T01:00:00.000Z")).toBe("2026/06/16 10:00");
+    expect(formatTokyoTime("2026-06-16T01:00:00.000Z")).toBe("10:00");
   });
 });

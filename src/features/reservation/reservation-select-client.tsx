@@ -6,7 +6,7 @@ import { useState } from "react";
 import type { AvailabilitySlotView, Prefecture, StoreSummary } from "~/shared/reservation-types";
 import { KANTO_PREFECTURES } from "~/shared/reservation-types";
 import { scrapeIds } from "~/shared/scrape-ids";
-import { formatTokyoDateKey, toTokyoDisplay } from "~/shared/tokyo-date";
+import { formatTokyoDateKey, formatTokyoTime, toTokyoDisplay } from "~/shared/tokyo-date";
 import { useReservationDraft } from "./reservation-draft-store";
 
 interface ReservationSelectClientProps {
@@ -313,38 +313,24 @@ function buildCalendarWeeks(slots: AvailabilitySlotView[]): {
 
 function formatDateLabel(dateKey: string): string {
   const [year, month, day] = dateKey.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-  return new Intl.DateTimeFormat("ja-JP", {
-    timeZone: "Asia/Tokyo",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  }).format(date);
+  return `${month}月${day}日(${getWeekdayLabel(year, month, day)})`;
 }
 
 function formatMonthDayLabel(dateKey: string): string {
   const [year, month, day] = dateKey.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-  return new Intl.DateTimeFormat("ja-JP", {
-    timeZone: "Asia/Tokyo",
-    month: "numeric",
-    day: "numeric",
-  }).format(date);
+  return `${month}/${day}`;
 }
 
 function formatWeekdayLabel(dateKey: string): string {
   const [year, month, day] = dateKey.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-  return new Intl.DateTimeFormat("ja-JP", {
-    timeZone: "Asia/Tokyo",
-    weekday: "short",
-  }).format(date);
+  return getWeekdayLabel(year, month, day);
 }
 
 function formatTimeLabel(date: string): string {
-  return new Intl.DateTimeFormat("ja-JP", {
-    timeZone: "Asia/Tokyo",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(date));
+  return formatTokyoTime(date);
+}
+
+function getWeekdayLabel(year: number, month: number, day: number): string {
+  const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+  return weekdays[new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
 }
