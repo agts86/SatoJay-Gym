@@ -1,8 +1,23 @@
-const tokyoOffsetMs = 9 * 60 * 60 * 1000;
+const tokyoDateFormatter = new Intl.DateTimeFormat("ja-JP", {
+  timeZone: "Asia/Tokyo",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+const tokyoDateTimeFormatter = new Intl.DateTimeFormat("ja-JP", {
+  timeZone: "Asia/Tokyo",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
 
 export function formatTokyoDateKey(date: Date): string {
-  const parts = toTokyoParts(date);
-  return `${parts.year}-${pad2(parts.month)}-${pad2(parts.day)}`;
+  const parts = getParts(tokyoDateFormatter, date);
+  return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
 export function addDaysTokyo(dateKey: string, days: number): string {
@@ -17,13 +32,13 @@ export function createTokyoSlotUtc(dateKey: string, hour: number): Date {
 }
 
 export function toTokyoDisplay(date: string | Date): string {
-  const parts = toTokyoParts(new Date(date));
-  return `${parts.year}/${pad2(parts.month)}/${pad2(parts.day)} ${pad2(parts.hour)}:${pad2(parts.minute)}`;
+  const parts = getParts(tokyoDateTimeFormatter, new Date(date));
+  return `${parts.year}/${parts.month}/${parts.day} ${parts.hour}:${parts.minute}`;
 }
 
 export function formatTokyoTime(date: string | Date): string {
-  const parts = toTokyoParts(new Date(date));
-  return `${pad2(parts.hour)}:${pad2(parts.minute)}`;
+  const parts = getParts(tokyoDateTimeFormatter, new Date(date));
+  return `${parts.hour}:${parts.minute}`;
 }
 
 export function getTokyoDateRange(now: Date): { from: Date; to: Date } {
@@ -48,17 +63,6 @@ function parseDateKey(dateKey: string): { year: number; month: number; day: numb
   return { year, month, day };
 }
 
-function toTokyoParts(date: Date): { year: number; month: number; day: number; hour: number; minute: number } {
-  const tokyoDate = new Date(date.getTime() + tokyoOffsetMs);
-  return {
-    year: tokyoDate.getUTCFullYear(),
-    month: tokyoDate.getUTCMonth() + 1,
-    day: tokyoDate.getUTCDate(),
-    hour: tokyoDate.getUTCHours(),
-    minute: tokyoDate.getUTCMinutes(),
-  };
-}
-
-function pad2(value: number): string {
-  return String(value).padStart(2, "0");
+function getParts(formatter: Intl.DateTimeFormat, date: Date): Record<string, string> {
+  return Object.fromEntries(formatter.formatToParts(date).map((part) => [part.type, part.value]));
 }

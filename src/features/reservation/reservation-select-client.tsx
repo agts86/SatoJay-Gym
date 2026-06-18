@@ -313,24 +313,34 @@ function buildCalendarWeeks(slots: AvailabilitySlotView[]): {
 
 function formatDateLabel(dateKey: string): string {
   const [year, month, day] = dateKey.split("-").map(Number);
-  return `${month}月${day}日(${getWeekdayLabel(year, month, day)})`;
+  const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  return new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+  }).format(date);
 }
 
 function formatMonthDayLabel(dateKey: string): string {
   const [year, month, day] = dateKey.split("-").map(Number);
-  return `${month}/${day}`;
+  const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  return new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    month: "numeric",
+    day: "numeric",
+  }).format(date);
 }
 
 function formatWeekdayLabel(dateKey: string): string {
   const [year, month, day] = dateKey.split("-").map(Number);
-  return getWeekdayLabel(year, month, day);
+  const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  return new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    weekday: "short",
+  }).format(date);
 }
 
 function formatTimeLabel(date: string): string {
   return formatTokyoTime(date);
-}
-
-function getWeekdayLabel(year: number, month: number, day: number): string {
-  const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
-  return weekdays[new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
 }
