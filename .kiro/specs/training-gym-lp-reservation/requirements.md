@@ -133,7 +133,7 @@
 5. The 予約システム shall `/reservation` の一意要素に`prefecture-select`、`store-list`、`availability-calendar`、`selected-slot`、`reservation-next-button`を識別できる`id`属性を付与する
 6. The 予約システム shall `/reservation` の繰り返し要素に`store-card`、`available-slot`を識別できる`data-scrape`属性を付与する
 7. The 予約システム shall `/reservation` の店舗カードに`data-store-id`、`data-store-name`、`data-prefecture`など店舗特定に必要な安定属性を付与する
-8. The 予約システム shall `/reservation` の空き枠要素に`data-slot-id`、`data-store-id`、`data-starts-at`、`data-selectable`など枠特定と選択可否に必要な安定属性を付与する
+8. The 予約システム shall `/reservation` の空き枠要素に`data-slot-id`、`data-store-id`、`data-starts-at`、`data-selectable`など枠特定と選択可否に必要な安定属性を付与し、`data-starts-at`はスクレイピング側で時差変換せず使えるJSTオフセット付き日時にする
 9. The 予約システム shall `/reservation/form` の一意要素に`reservation-form`、`customer-name`、`customer-email`、`customer-phone`、`training-goal`、`customer-note`、`reservation-submit-button`を識別できる`id`属性を付与する
 10. The 予約システム shall `/reservation/confirm` の一意要素に`reservation-confirm`、`reservation-confirm-submit-button`を識別できる`id`属性を付与する
 11. The 予約システム shall `/reservation/thanks` の一意要素に`reservation-thanks`、`reservation-summary`、`reservation-number`を識別できる`id`属性を付与する

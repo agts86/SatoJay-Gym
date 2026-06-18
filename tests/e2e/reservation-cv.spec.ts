@@ -17,6 +17,7 @@ test("LPから無料体験予約を完了し、サンクスページでオーダ
 
   const availableSlot = page.locator('[data-scrape="available-slot"][data-selectable="true"]').first();
   await expect(availableSlot).toBeVisible();
+  await expect(availableSlot).toHaveAttribute("data-starts-at", /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:00\+09:00$/);
   await availableSlot.click();
 
   const nextButton = page.locator("#reservation-next-button");

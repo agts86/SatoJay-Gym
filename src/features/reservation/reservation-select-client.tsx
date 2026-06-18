@@ -249,7 +249,8 @@ function AvailabilityCalendar({
                             data-scrape={scrapeIds.reservation.availableSlot}
                             data-selectable={slot.selectable ? "true" : "false"}
                             data-slot-id={slot.id}
-                            data-starts-at={slot.startsAt}
+                            data-starts-at={`${day.dateKey}T${time}:00+09:00`}
+                            data-starts-at-utc={slot.startsAt}
                             data-store-id={slot.storeId}
                             disabled={!slot.selectable}
                             onClick={() => onSelect(slot)}

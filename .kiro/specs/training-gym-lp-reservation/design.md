@@ -679,7 +679,7 @@ interface AdminBookingRow {
 - LP CTAから`/reservation`へ進み、都道府県、店舗、枠を選択して`/reservation/form`へ進む。
 - 予約可能枠が`○`、予約不可または予約済み枠が`×`で表示され、選択不可であることを確認する。
 - 選択済み枠が背景色と`✓`で強調され、選択中日時カードとCTA有効化に反映されることを確認する。
-- 店舗カードと空き枠の`data-store-id`、`data-store-name`、`data-prefecture`、`data-slot-id`、`data-starts-at`、`data-selectable`でスクレイピング対象を取得できることを確認する。
+- 店舗カードと空き枠の`data-store-id`、`data-store-name`、`data-prefecture`、`data-slot-id`、`data-starts-at`、`data-starts-at-utc`、`data-selectable`でスクレイピング対象を取得できることを確認する。`data-starts-at`は`YYYY-MM-DDTHH:mm:ss+09:00`形式のJST日時として取得できることを確認する。
 - 必須項目未入力と不正なメール/電話番号で確認画面へ進めない。
 - `/reservation/confirm`から`/reservation/form`に戻っても入力値、選択店舗、選択枠が保持される。
 - 入力完了後に`/reservation/confirm`で内容を確認し、送信後`/reservation/thanks`で予約番号を見る。
