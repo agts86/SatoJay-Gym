@@ -13,6 +13,8 @@ export const scrapeIds = {
     storeList: "store-list",
     storeCard: "store-card",
     availabilityCalendar: "availability-calendar",
+    previousWeekButton: "calendar-previous-week",
+    nextWeekButton: "calendar-next-week",
     availableSlot: "available-slot",
     selectedSlot: "selected-slot",
     nextButton: "reservation-next-button",

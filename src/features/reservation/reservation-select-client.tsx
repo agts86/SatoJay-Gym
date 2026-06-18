@@ -194,7 +194,10 @@ function AvailabilityCalendar({
           <header className="calendar-week-header">
             <button
               className="calendar-nav-button"
+              data-scrape={scrapeIds.reservation.previousWeekButton}
+              data-testid={scrapeIds.reservation.previousWeekButton}
               disabled={currentWeekIndex === 0}
+              id={scrapeIds.reservation.previousWeekButton}
               onClick={() => setWeekIndex((current) => Math.max(current - 1, 0))}
               type="button"
             >
@@ -206,7 +209,10 @@ function AvailabilityCalendar({
             </div>
             <button
               className="calendar-nav-button"
+              data-scrape={scrapeIds.reservation.nextWeekButton}
+              data-testid={scrapeIds.reservation.nextWeekButton}
               disabled={currentWeekIndex >= calendarWeeks.length - 1}
+              id={scrapeIds.reservation.nextWeekButton}
               onClick={() => setWeekIndex((current) => Math.min(current + 1, calendarWeeks.length - 1))}
               type="button"
             >
