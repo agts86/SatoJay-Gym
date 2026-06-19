@@ -13,11 +13,11 @@ CMD ["pnpm", "dev"]
 
 FROM deps AS build
 COPY . .
-ENV DATABASE_URL=postgresql://postgres:postgres@localhost:5432/satojay_gym?schema=public
-ENV DATABASE_URL_UNPOOLED=postgresql://postgres:postgres@localhost:5432/satojay_gym?schema=public
-ENV ADMIN_PASSWORD_HASH=dummy-build-time-value
-ENV ADMIN_SESSION_SECRET=dummy-build-time-value
-RUN pnpm build
+RUN DATABASE_URL="postgresql://postgres:postgres@localhost:5432/satojay_gym?schema=public" \
+    DATABASE_URL_UNPOOLED="postgresql://postgres:postgres@localhost:5432/satojay_gym?schema=public" \
+    ADMIN_PASSWORD_HASH="dummy-build-time-value" \
+    ADMIN_SESSION_SECRET="dummy-build-time-value" \
+    pnpm build
 
 FROM base AS runner
 ENV NODE_ENV=production
