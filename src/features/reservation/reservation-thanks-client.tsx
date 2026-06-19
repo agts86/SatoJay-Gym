@@ -4,8 +4,12 @@ import Link from "next/link";
 import { useState } from "react";
 import { scrapeIds } from "~/shared/scrape-ids";
 
-export function ReservationThanksClient() {
-  const [bookingNumber] = useState(readLastBookingNumber);
+interface ReservationThanksClientProps {
+  orderId: string;
+}
+
+export function ReservationThanksClient({ orderId }: ReservationThanksClientProps) {
+  const [bookingNumber] = useState(() => orderId || readLastBookingNumber());
 
   return (
     <main className="page-shell" id={scrapeIds.thanks.page}>

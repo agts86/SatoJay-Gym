@@ -1,5 +1,12 @@
 import { expect, test } from "@playwright/test";
 
+test("サンクスページはorderIdクエリを予約番号として表示できる", async ({ page }) => {
+  await page.goto("/reservation/thanks?orderId=GYM-20260619-9999");
+
+  await expect(page.locator("#reservation-thanks")).toBeVisible();
+  await expect(page.locator("#reservation-number")).toHaveText("GYM-20260619-9999");
+});
+
 test("LPから無料体験予約を完了し、サンクスページでオーダーIDを確認できる", async ({ page }) => {
   await page.addInitScript(() => {
     window.sessionStorage.clear();
