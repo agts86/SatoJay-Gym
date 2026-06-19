@@ -30,6 +30,7 @@ export const scrapeIds = {
   },
   confirm: {
     page: "reservation-confirm",
+    message: "reservation-confirm-message",
     submitButton: "reservation-confirm-submit-button",
   },
   thanks: {

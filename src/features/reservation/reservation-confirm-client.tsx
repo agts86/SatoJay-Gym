@@ -43,7 +43,11 @@ export function ReservationConfirmClient() {
           <p>電話番号: {draft.customerPhone}</p>
           <p>目的: {draft.trainingGoal}</p>
           <p>備考: {draft.customerNote || "なし"}</p>
-          {state.message ? <p style={{ color: state.ok ? "var(--accent)" : "#b91c1c" }}>{state.message}</p> : null}
+          {state.message ? (
+            <p id={scrapeIds.confirm.message} style={{ color: state.ok ? "var(--accent)" : "#b91c1c" }}>
+              {state.message}
+            </p>
+          ) : null}
           <form action={action} className="grid">
             <input name="storeId" type="hidden" value={draft.store.id} />
             <input name="slotId" type="hidden" value={draft.slot.id} />
