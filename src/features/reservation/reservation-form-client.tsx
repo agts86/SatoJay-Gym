@@ -3,12 +3,33 @@
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import type { ReservationCustomerInput } from "~/shared/reservation-schema";
 import { reservationCustomerSchema } from "~/shared/reservation-schema";
 import { scrapeIds } from "~/shared/scrape-ids";
 import { ReservationSummary } from "./reservation-summary";
 import { isDraftReadyForForm, useReservationDraft } from "./reservation-draft-store";
 
-type FieldErrors = Record<string, string>;
+type RequiredCustomerFieldName = keyof Pick<ReservationCustomerInput, "customerName" | "customerEmail" | "customerPhone" | "trainingGoal">;
+type FieldErrors = Partial<Record<RequiredCustomerFieldName, string>>;
+
+interface CustomerFieldDefinition {
+  id: string;
+  label: string;
+  name: RequiredCustomerFieldName;
+  required: true;
+}
+
+interface CustomerFieldProps extends CustomerFieldDefinition {
+  defaultValue?: string;
+  error?: string;
+}
+
+const customerFields = [
+  { id: scrapeIds.form.customerName, label: "氏名", name: "customerName", required: true },
+  { id: scrapeIds.form.customerEmail, label: "メールアドレス", name: "customerEmail", required: true },
+  { id: scrapeIds.form.customerPhone, label: "電話番号", name: "customerPhone", required: true },
+  { id: scrapeIds.form.trainingGoal, label: "トレーニング目的", name: "trainingGoal", required: true },
+] satisfies CustomerFieldDefinition[];
 
 export function ReservationFormClient() {
   const router = useRouter();
@@ -38,17 +59,16 @@ export function ReservationFormClient() {
             const formData = new FormData(event.currentTarget);
             const parsed = reservationCustomerSchema.safeParse(Object.fromEntries(formData));
             if (!parsed.success) {
-              setErrors(Object.fromEntries(parsed.error.issues.map((issue) => [String(issue.path[0]), issue.message])));
+              setErrors(toFieldErrors(parsed.error.issues));
               return;
             }
             updateCustomer(parsed.data);
             router.push("/reservation/confirm");
           }}
         >
-          <CustomerField id={scrapeIds.form.customerName} label="氏名" name="customerName" defaultValue={draft.customerName} error={errors.customerName} />
-          <CustomerField id={scrapeIds.form.customerEmail} label="メールアドレス" name="customerEmail" defaultValue={draft.customerEmail} error={errors.customerEmail} />
-          <CustomerField id={scrapeIds.form.customerPhone} label="電話番号" name="customerPhone" defaultValue={draft.customerPhone} error={errors.customerPhone} />
-          <CustomerField id={scrapeIds.form.trainingGoal} label="トレーニング目的" name="trainingGoal" defaultValue={draft.trainingGoal} error={errors.trainingGoal} />
+          {customerFields.map((field) => (
+            <CustomerField key={field.name} {...field} defaultValue={draft[field.name]} error={errors[field.name]} />
+          ))}
           <label className="field" htmlFor={scrapeIds.form.customerNote}>
             備考
             <textarea defaultValue={draft.customerNote} id={scrapeIds.form.customerNote} name="customerNote" rows={5} />
@@ -69,12 +89,30 @@ export function ReservationFormClient() {
   );
 }
 
-function CustomerField(props: { id: string; label: string; name: string; defaultValue?: string; error?: string }) {
+function CustomerField({ defaultValue, error, id, label, name, required }: CustomerFieldProps) {
   return (
-    <label className="field" htmlFor={props.id}>
-      {props.label}
-      <input defaultValue={props.defaultValue} id={props.id} name={props.name} />
-      {props.error ? <span style={{ color: "#b91c1c" }}>{props.error}</span> : null}
+    <label className="field" htmlFor={id}>
+      <span>
+        {label}
+        {required ? <span className="required-mark">※</span> : null}
+      </span>
+      <input defaultValue={defaultValue} id={id} name={name} />
+      {error ? <span style={{ color: "#b91c1c" }}>{error}</span> : null}
     </label>
   );
+}
+
+function toFieldErrors(issues: { path: PropertyKey[]; message: string }[]): FieldErrors {
+  const fieldErrors: FieldErrors = {};
+  for (const issue of issues) {
+    const fieldName = issue.path[0];
+    if (isRequiredCustomerFieldName(fieldName)) {
+      fieldErrors[fieldName] = issue.message;
+    }
+  }
+  return fieldErrors;
+}
+
+function isRequiredCustomerFieldName(value: PropertyKey | undefined): value is RequiredCustomerFieldName {
+  return customerFields.some((field) => field.name === value);
 }

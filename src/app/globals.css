@@ -78,6 +78,12 @@ textarea {
   gap: 8px;
 }
 
+.required-mark {
+  color: #b91c1c;
+  font-weight: 800;
+  margin-left: 4px;
+}
+
 .field input,
 .field select,
 .field textarea {

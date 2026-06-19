@@ -14,6 +14,41 @@ interface ReservationSelectClientProps {
   slotsByStore: Record<string, AvailabilitySlotView[]>;
 }
 
+interface SelectionSummaryProps {
+  slot?: AvailabilitySlotView;
+  store?: StoreSummary;
+}
+
+interface PrefectureSelectProps {
+  prefecture: Prefecture;
+  onChange: (prefecture: Prefecture) => void;
+}
+
+interface StoreListProps {
+  selectedStoreId?: string;
+  stores: StoreSummary[];
+  onSelect: (store: StoreSummary) => void;
+}
+
+interface AvailabilityCalendarProps {
+  selectedSlotId?: string;
+  slots: AvailabilitySlotView[];
+  storeSelected: boolean;
+  onSelect: (slot: AvailabilitySlotView) => void;
+}
+
+interface CalendarDay {
+  dateKey: string;
+  slotsByTime: Map<string, AvailabilitySlotView>;
+}
+
+interface CalendarWeek {
+  availableCount: number;
+  days: CalendarDay[];
+  times: string[];
+  weekLabel: string;
+}
+
 export function ReservationSelectClient({ storesByPrefecture, slotsByStore }: ReservationSelectClientProps) {
   const router = useRouter();
   const { draft, setPrefecture, setStore, setSlot } = useReservationDraft();
@@ -68,7 +103,7 @@ export function ReservationSelectClient({ storesByPrefecture, slotsByStore }: Re
   );
 }
 
-function SelectionSummary({ slot, store }: { slot?: AvailabilitySlotView; store?: StoreSummary }) {
+function SelectionSummary({ slot, store }: SelectionSummaryProps) {
   return (
     <div className="reservation-selection-summary">
       <article className="selection-summary-card" data-testid="selected-store">
@@ -108,7 +143,7 @@ function StepIndicator() {
   );
 }
 
-function PrefectureSelect({ prefecture, onChange }: { prefecture: Prefecture; onChange: (prefecture: Prefecture) => void }) {
+function PrefectureSelect({ prefecture, onChange }: PrefectureSelectProps) {
   return (
     <label className="field" htmlFor={scrapeIds.reservation.prefectureSelect}>
       都道府県
@@ -123,15 +158,7 @@ function PrefectureSelect({ prefecture, onChange }: { prefecture: Prefecture; on
   );
 }
 
-function StoreList({
-  selectedStoreId,
-  stores,
-  onSelect,
-}: {
-  selectedStoreId?: string;
-  stores: StoreSummary[];
-  onSelect: (store: StoreSummary) => void;
-}) {
+function StoreList({ selectedStoreId, stores, onSelect }: StoreListProps) {
   return (
     <div id={scrapeIds.reservation.storeList} className="store-list" data-testid="store-list">
       {stores.length === 0 ? <p className="muted">該当店舗がありません。</p> : null}
@@ -169,17 +196,7 @@ function StoreList({
   );
 }
 
-function AvailabilityCalendar({
-  selectedSlotId,
-  slots,
-  storeSelected,
-  onSelect,
-}: {
-  selectedSlotId?: string;
-  slots: AvailabilitySlotView[];
-  storeSelected: boolean;
-  onSelect: (slot: AvailabilitySlotView) => void;
-}) {
+function AvailabilityCalendar({ selectedSlotId, slots, storeSelected, onSelect }: AvailabilityCalendarProps) {
   const calendarWeeks = buildCalendarWeeks(slots);
   const [weekIndex, setWeekIndex] = useState(0);
   const currentWeekIndex = Math.min(weekIndex, Math.max(calendarWeeks.length - 1, 0));
@@ -272,12 +289,7 @@ function AvailabilityCalendar({
   );
 }
 
-function buildCalendarWeeks(slots: AvailabilitySlotView[]): {
-  availableCount: number;
-  days: { dateKey: string; slotsByTime: Map<string, AvailabilitySlotView> }[];
-  times: string[];
-  weekLabel: string;
-}[] {
+function buildCalendarWeeks(slots: AvailabilitySlotView[]): CalendarWeek[] {
   const groupedByDate = new Map<string, AvailabilitySlotView[]>();
   for (const slot of slots) {
     const dateKey = formatTokyoDateKey(new Date(slot.startsAt));

@@ -2,6 +2,14 @@ import type { AvailabilitySlot, Store } from "@prisma/client";
 import { db } from "~/server/db";
 import { KANTO_PREFECTURES, type AvailabilitySlotView, type Prefecture, type StoreSummary } from "~/shared/reservation-types";
 
+interface SlotSearchCondition {
+  storeId: string;
+  range: {
+    from: Date;
+    to: Date;
+  };
+}
+
 function toPrefecture(value: string): Prefecture {
   if (KANTO_PREFECTURES.includes(value as Prefecture)) {
     return value as Prefecture;
@@ -55,13 +63,13 @@ export const storeRepository = {
     return stores.map(toStoreSummary);
   },
 
-  async listSlotsByStore(storeId: string, from: Date, to: Date): Promise<AvailabilitySlotView[]> {
+  async listSlotsByStore({ range, storeId }: SlotSearchCondition): Promise<AvailabilitySlotView[]> {
     const slots = await db.availabilitySlot.findMany({
       where: {
         storeId,
         startsAt: {
-          gte: from,
-          lt: to,
+          gte: range.from,
+          lt: range.to,
         },
       },
       include: {

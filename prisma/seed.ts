@@ -28,6 +28,16 @@ const storesByPrefecture: Record<Prefecture, string[]> = {
 const facilities = ["24時間営業", "シャワー", "ロッカー", "レンタルウェア"];
 const programs = ["体験トレーニング", "姿勢改善", "筋力アップ", "ダイエット"];
 
+interface StoreSeedContext {
+  storeId: string;
+  todayKey: string;
+}
+
+interface DateSlotSeedContext {
+  storeId: string;
+  dateKey: string;
+}
+
 async function main(): Promise<void> {
   const todayKey = formatTokyoDateKey(new Date());
 
@@ -47,18 +57,18 @@ async function seedStoresForPrefecture(prefecture: Prefecture, todayKey: string)
       },
     });
 
-    await seedSlotsForStore(store.id, todayKey);
+    await seedSlotsForStore({ storeId: store.id, todayKey });
   }
 }
 
-async function seedSlotsForStore(storeId: string, todayKey: string): Promise<void> {
+async function seedSlotsForStore({ storeId, todayKey }: StoreSeedContext): Promise<void> {
   for (let dayOffset = 0; dayOffset < 30; dayOffset += 1) {
     const dateKey = addDaysTokyo(todayKey, dayOffset);
-    await seedSlotsForDate(storeId, dateKey);
+    await seedSlotsForDate({ storeId, dateKey });
   }
 }
 
-async function seedSlotsForDate(storeId: string, dateKey: string): Promise<void> {
+async function seedSlotsForDate({ storeId, dateKey }: DateSlotSeedContext): Promise<void> {
   for (let hour = 10; hour < 20; hour += 1) {
     const startsAt = createTokyoSlotUtc(dateKey, hour);
     const endsAt = createTokyoSlotUtc(dateKey, hour + 1);

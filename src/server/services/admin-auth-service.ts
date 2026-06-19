@@ -16,6 +16,16 @@ export type AdminAuthError =
   | { type: "INVALID_SESSION" }
   | { type: "CONFIGURATION_ERROR" };
 
+interface SignInput {
+  payload: string;
+  secret: string;
+}
+
+interface SafeEqualInput {
+  left: string;
+  right: string;
+}
+
 export async function verifyPassword(password: string): Promise<Result<AdminSession, AdminAuthError>> {
   const passwordHash = process.env.ADMIN_PASSWORD_HASH;
   if (!passwordHash) {
@@ -37,7 +47,7 @@ export function createSessionCookie(session: AdminSession): Result<string, Admin
   }
 
   const payload = Buffer.from(JSON.stringify(session)).toString("base64url");
-  const signature = sign(payload, secret);
+  const signature = sign({ payload, secret });
   return { ok: true, value: `${payload}.${signature}` };
 }
 
@@ -51,7 +61,7 @@ export function verifySession(cookieValue: string | undefined): Result<AdminSess
   }
 
   const [payload, signature] = cookieValue.split(".");
-  if (!payload || !signature || !safeEqual(signature, sign(payload, secret))) {
+  if (!payload || !signature || !safeEqual({ left: signature, right: sign({ payload, secret }) })) {
     return { ok: false, error: { type: "INVALID_SESSION" } };
   }
 
@@ -70,11 +80,11 @@ function parseSession(payload: string): Result<AdminSession, AdminAuthError> {
   }
 }
 
-function sign(payload: string, secret: string): string {
+function sign({ payload, secret }: SignInput): string {
   return createHmac("sha256", secret).update(payload).digest("base64url");
 }
 
-function safeEqual(left: string, right: string): boolean {
+function safeEqual({ left, right }: SafeEqualInput): boolean {
   const leftBuffer = Buffer.from(left);
   const rightBuffer = Buffer.from(right);
   return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
