@@ -6,6 +6,12 @@
   "service": "app",
   "workspaceFolder": "/app",
   "shutdownAction": "stopCompose",
+  "remoteEnv": {
+    "HOME": "/home/ubuntu"
+  },
+  "mounts": [
+    "source=${localEnv:HOME}/.codex,target=/home/ubuntu/.codex,type=bind,consistency=cached"
+  ],
   "forwardPorts": [
     3000,
     5432

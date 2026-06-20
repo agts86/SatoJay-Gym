@@ -2,5 +2,6 @@ FROM mcr.microsoft.com/playwright:v1.61.0-noble
 
 WORKDIR /app
 RUN corepack enable
+RUN npm install -g @openai/codex
 RUN mkdir -p /app/node_modules /home/ubuntu/.cache/node/corepack \
   && chown -R 1000:1000 /app /home/ubuntu
