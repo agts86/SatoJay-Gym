@@ -13,6 +13,9 @@ export function ReservationThanksClient({ orderId }: ReservationThanksClientProp
 
   return (
     <main className="page-shell" id={scrapeIds.thanks.page}>
+      <div id={scrapeIds.thanks.botchanOrderId} style={{ display: "none" }}>
+        {bookingNumber}
+      </div>
       <h1 className="section-title">予約完了</h1>
       <section className="card" id={scrapeIds.thanks.summary}>
         <p>体験予約を受け付けました。</p>

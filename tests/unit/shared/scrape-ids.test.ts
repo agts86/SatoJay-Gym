@@ -11,6 +11,7 @@ describe("scrapeIds", () => {
     expect(scrapeIds.form.customerEmail).toBe("customer-email");
     expect(scrapeIds.confirm.message).toBe("reservation-confirm-message");
     expect(scrapeIds.thanks.summary).toBe("reservation-summary");
+    expect(scrapeIds.thanks.botchanOrderId).toBe("botchan_order_id");
     expect(scrapeIds.admin.bookingDatetime).toBe("booking-datetime");
   });
 });

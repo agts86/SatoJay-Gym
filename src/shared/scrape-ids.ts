@@ -37,6 +37,7 @@ export const scrapeIds = {
     page: "reservation-thanks",
     summary: "reservation-summary",
     number: "reservation-number",
+    botchanOrderId: "botchan_order_id",
   },
   admin: {
     loginForm: "admin-login-form",
