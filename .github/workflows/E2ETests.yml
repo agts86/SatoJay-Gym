@@ -97,6 +97,60 @@ jobs:
       - name: Run reservation CV E2E
         run: pnpm exec playwright test tests/e2e/reservation-cv.spec.ts
 
+      - name: Write E2E summary
+        if: always()
+        run: |
+          node <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          const fs = require("node:fs");
+          const resultsPath = "test-results/e2e-results.json";
+
+          console.log("## Reservation CV E2E");
+          console.log("");
+          console.log("| Output | Path |");
+          console.log("| --- | --- |");
+          console.log("| HTML report | `playwright-report/` |");
+          console.log("| Trace, screenshots, videos | `test-results/` |");
+          console.log("| JSON result | `test-results/e2e-results.json` |");
+          console.log("");
+
+          if (!fs.existsSync(resultsPath)) {
+            console.log("JSON result was not generated.");
+            process.exit(0);
+          }
+
+          const results = JSON.parse(fs.readFileSync(resultsPath, "utf8"));
+          const counts = { passed: 0, failed: 0, skipped: 0, timedOut: 0, interrupted: 0 };
+
+          for (const suite of results.suites ?? []) {
+            for (const spec of suite.specs ?? []) {
+              for (const test of spec.tests ?? []) {
+                const status = test.outcome ?? test.results?.at(-1)?.status ?? "failed";
+                if (status === "expected") {
+                  counts.passed += 1;
+                } else if (status === "skipped") {
+                  counts.skipped += 1;
+                } else if (status === "timedOut") {
+                  counts.timedOut += 1;
+                } else if (status === "interrupted") {
+                  counts.interrupted += 1;
+                } else {
+                  counts.failed += 1;
+                }
+              }
+            }
+          }
+          const total = counts.passed + counts.failed + counts.skipped + counts.timedOut + counts.interrupted;
+
+          console.log("| Metric | Count |");
+          console.log("| --- | ---: |");
+          console.log(`| Passed | ${counts.passed} |`);
+          console.log(`| Failed | ${counts.failed} |`);
+          console.log(`| Timed out | ${counts.timedOut} |`);
+          console.log(`| Interrupted | ${counts.interrupted} |`);
+          console.log(`| Skipped | ${counts.skipped} |`);
+          console.log(`| Total | ${total} |`);
+          NODE
+
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v7
@@ -105,7 +159,7 @@ jobs:
           path: playwright-report
           if-no-files-found: ignore
 
-      - name: Upload Playwright test results
+      - name: Upload Playwright test results and evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:

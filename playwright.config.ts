@@ -6,9 +6,16 @@ const chromeChannel = existsSync("/usr/bin/google-chrome") ? { channel: "chrome"
 export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 30_000,
+  reporter: [
+    ["list"],
+    ["html", { outputFolder: "playwright-report", open: "never" }],
+    ["json", { outputFile: "test-results/e2e-results.json" }],
+  ],
   use: {
     baseURL: "http://127.0.0.1:3000",
-    trace: "on-first-retry",
+    screenshot: "only-on-failure",
+    trace: "retain-on-failure",
+    video: "retain-on-failure",
   },
   webServer: {
     command: "pnpm dev",
