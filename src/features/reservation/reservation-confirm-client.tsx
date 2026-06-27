@@ -2,7 +2,7 @@
 
 import { ArrowLeft, Send } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { submitBooking, type ActionState } from "~/server/actions";
 import { scrapeIds } from "~/shared/scrape-ids";
 import { ReservationSummary } from "./reservation-summary";
@@ -14,12 +14,20 @@ export function ReservationConfirmClient() {
   const router = useRouter();
   const { draft } = useReservationDraft();
   const [state, action, pending] = useActionState(submitBooking, initialState);
+  const [submissionToken, setSubmissionToken] = useState("");
 
   useEffect(() => {
     if (!isDraftReadyForConfirm(draft)) {
       router.replace("/reservation");
     }
   }, [draft, router]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setSubmissionToken(createSubmissionToken());
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   useEffect(() => {
     if (state.ok && state.bookingNumber) {
@@ -49,6 +57,7 @@ export function ReservationConfirmClient() {
             </p>
           ) : null}
           <form action={action} className="grid">
+            <input name="submissionToken" type="hidden" value={submissionToken} />
             <input name="storeId" type="hidden" value={draft.store.id} />
             <input name="slotId" type="hidden" value={draft.slot.id} />
             <input name="customerName" type="hidden" value={draft.customerName} />
@@ -61,7 +70,7 @@ export function ReservationConfirmClient() {
                 <ArrowLeft size={18} aria-hidden />
                 戻る
               </button>
-              <button className="button" disabled={pending} id={scrapeIds.confirm.submitButton} type="submit">
+              <button className="button" disabled={pending || !submissionToken} id={scrapeIds.confirm.submitButton} type="submit">
                 <Send size={18} aria-hidden />
                 {pending ? "送信中" : "送信する"}
               </button>
@@ -71,4 +80,11 @@ export function ReservationConfirmClient() {
       </div>
     </main>
   );
+}
+
+function createSubmissionToken(): string {
+  if (typeof window.crypto.randomUUID === "function") {
+    return window.crypto.randomUUID();
+  }
+  return `reservation-${Date.now()}-${Math.random()}`;
 }

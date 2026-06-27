@@ -14,6 +14,8 @@ export interface CreateBookingOutput {
 }
 
 const maxBookingNumberAttempts = 5;
+const replayCacheTtlMs = 60_000;
+const reservationReplays = new Map<string, { expiresAt: number; result: Promise<Result<CreateBookingOutput, BookingError>> }>();
 
 export async function createReservation(input: unknown, now = new Date()): Promise<Result<CreateBookingOutput, BookingError>> {
   const parsed = createBookingInputSchema.safeParse(input);
@@ -21,7 +23,23 @@ export async function createReservation(input: unknown, now = new Date()): Promi
     return { ok: false, error: { type: "VALIDATION_ERROR", fields: zodFields(parsed.error) } };
   }
 
-  return createWithRetry(parsed.data, formatTokyoDateKey(now));
+  return createOncePerSubmission(parsed.data, formatTokyoDateKey(now), now.getTime());
+}
+
+function createOncePerSubmission(
+  input: CreateBookingInput,
+  dateKey: string,
+  nowMs: number,
+): Promise<Result<CreateBookingOutput, BookingError>> {
+  clearExpiredReplays(nowMs);
+  const existing = reservationReplays.get(input.submissionToken);
+  if (existing) {
+    return existing.result;
+  }
+
+  const result = createWithRetry(input, dateKey);
+  reservationReplays.set(input.submissionToken, { expiresAt: nowMs + replayCacheTtlMs, result });
+  return result;
 }
 
 async function createWithRetry(input: CreateBookingInput, dateKey: string): Promise<Result<CreateBookingOutput, BookingError>> {
@@ -61,4 +79,12 @@ function mapPersistenceError(error: BookingPersistenceError): BookingError {
 
 function zodFields(error: { issues: { path: PropertyKey[]; message: string }[] }): Record<string, string> {
   return Object.fromEntries(error.issues.map((issue) => [String(issue.path[0] ?? "form"), issue.message]));
+}
+
+function clearExpiredReplays(nowMs: number): void {
+  for (const [submissionToken, replay] of reservationReplays) {
+    if (replay.expiresAt <= nowMs) {
+      reservationReplays.delete(submissionToken);
+    }
+  }
 }
