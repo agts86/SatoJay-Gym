@@ -54,5 +54,15 @@
   "volta": {
     "node": "24.11.1",
     "pnpm": "10.26.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "esbuild",
+      "prisma",
+      "sharp",
+      "unrs-resolver"
+    ]
   }
 }
