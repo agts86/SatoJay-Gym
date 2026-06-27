@@ -119,15 +119,18 @@ jobs:
           }
 
           const results = JSON.parse(fs.readFileSync(resultsPath, "utf8"));
-          const counts = { passed: 0, failed: 0, skipped: 0, timedOut: 0, interrupted: 0 };
+          const counts = { passed: 0, failed: 0, flaky: 0, skipped: 0, timedOut: 0, interrupted: 0 };
 
           for (const suite of results.suites ?? []) {
             for (const spec of suite.specs ?? []) {
               for (const test of spec.tests ?? []) {
-                const status = test.outcome ?? test.results?.at(-1)?.status ?? "failed";
-                if (status === "expected") {
+                const outcome = test.outcome;
+                const status = test.results?.at(-1)?.status;
+                if (outcome === "expected" || status === "passed") {
                   counts.passed += 1;
-                } else if (status === "skipped") {
+                } else if (outcome === "flaky") {
+                  counts.flaky += 1;
+                } else if (outcome === "skipped" || status === "skipped") {
                   counts.skipped += 1;
                 } else if (status === "timedOut") {
                   counts.timedOut += 1;
@@ -139,12 +142,13 @@ jobs:
               }
             }
           }
-          const total = counts.passed + counts.failed + counts.skipped + counts.timedOut + counts.interrupted;
+          const total = counts.passed + counts.failed + counts.flaky + counts.skipped + counts.timedOut + counts.interrupted;
 
           console.log("| Metric | Count |");
           console.log("| --- | ---: |");
           console.log(`| Passed | ${counts.passed} |`);
           console.log(`| Failed | ${counts.failed} |`);
+          console.log(`| Flaky | ${counts.flaky} |`);
           console.log(`| Timed out | ${counts.timedOut} |`);
           console.log(`| Interrupted | ${counts.interrupted} |`);
           console.log(`| Skipped | ${counts.skipped} |`);
