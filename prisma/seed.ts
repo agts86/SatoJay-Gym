@@ -1,8 +1,8 @@
-import { PrismaClient } from "@prisma/client";
 import { KANTO_PREFECTURES, type Prefecture } from "../src/shared/reservation-types";
 import { addDaysTokyo, createTokyoSlotUtc, formatTokyoDateKey } from "../src/shared/tokyo-date";
+import { createSatoJayPrismaClient } from "../src/server/prisma-client";
 
-const prisma = new PrismaClient();
+await using prisma = createSatoJayPrismaClient();
 
 const storesByPrefecture: Record<Prefecture, string[]> = {
   東京都: [
@@ -100,12 +100,9 @@ function storeData(prefecture: Prefecture, suffix: string) {
   };
 }
 
-main()
-  .finally(async () => {
-    await prisma.$disconnect();
-  })
-  .catch(async (error: unknown) => {
-    console.error(error);
-    await prisma.$disconnect();
-    process.exit(1);
-  });
+try {
+  await main();
+} catch (error) {
+  console.error(error);
+  process.exitCode = 1;
+}

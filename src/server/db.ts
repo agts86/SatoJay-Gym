@@ -1,10 +1,10 @@
-import { PrismaClient } from "@prisma/client";
+import { createSatoJayPrismaClient, type SatoJayPrismaClient } from "~/server/prisma-client";
 
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+const globalForPrisma = globalThis as unknown as { prisma?: SatoJayPrismaClient };
 
 export const db =
   globalForPrisma.prisma ??
-  new PrismaClient({
+  createSatoJayPrismaClient({
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   });
 

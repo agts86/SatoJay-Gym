@@ -83,26 +83,22 @@ test("同じ予約内容を別画面で先にCVされた場合、確認画面で
   await expect(page).toHaveURL(/\/reservation\/confirm$/);
   await expect(page.locator("#reservation-confirm-submit-button")).toBeEnabled();
 
-  const contextB = await browser.newContext();
-  try {
-    const pageB = await contextB.newPage();
-    await clearReservationSession(pageB);
-    await pageB.goto(`${baseURL ?? "http://127.0.0.1:3000"}/reservation`);
-    await selectReservation(pageB, selectedReservation);
-    await pageB.locator("#reservation-next-button").click();
-    await fillCustomerForm(pageB, duplicateCustomer);
-    await pageB.locator("#reservation-submit-button").click();
-    await expect(pageB).toHaveURL(/\/reservation\/confirm$/);
-    await pageB.locator("#reservation-confirm-submit-button").click();
-    await expect(pageB).toHaveURL(/\/reservation\/thanks$/, { timeout: 15_000 });
-    await expect(pageB.locator("#reservation-number")).toHaveText(/^GYM-\d{8}-\d{4}$/);
+  await using contextB = await browser.newContext();
+  const pageB = await contextB.newPage();
+  await clearReservationSession(pageB);
+  await pageB.goto(`${baseURL ?? "http://127.0.0.1:3000"}/reservation`);
+  await selectReservation(pageB, selectedReservation);
+  await pageB.locator("#reservation-next-button").click();
+  await fillCustomerForm(pageB, duplicateCustomer);
+  await pageB.locator("#reservation-submit-button").click();
+  await expect(pageB).toHaveURL(/\/reservation\/confirm$/);
+  await pageB.locator("#reservation-confirm-submit-button").click();
+  await expect(pageB).toHaveURL(/\/reservation\/thanks$/, { timeout: 15_000 });
+  await expect(pageB.locator("#reservation-number")).toHaveText(/^GYM-\d{8}-\d{4}$/);
 
-    await page.locator("#reservation-confirm-submit-button").click();
-    await expect(page).toHaveURL(/\/reservation\/confirm$/);
-    await expect(page.locator("#reservation-confirm-message")).toHaveText(SLOT_ALREADY_BOOKED_MESSAGE);
-  } finally {
-    await contextB.close();
-  }
+  await page.locator("#reservation-confirm-submit-button").click();
+  await expect(page).toHaveURL(/\/reservation\/confirm$/);
+  await expect(page.locator("#reservation-confirm-message")).toHaveText(SLOT_ALREADY_BOOKED_MESSAGE);
 });
 
 async function clearReservationSession(page: Page): Promise<void> {
