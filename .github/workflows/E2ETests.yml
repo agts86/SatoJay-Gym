@@ -8,7 +8,6 @@ on:
       - "tests/e2e/**"
       - "prisma/**"
       - "Dockerfile"
-      - "docker-compose.yml"
       - "package.json"
       - "pnpm-lock.yaml"
       - "playwright.config.ts"
@@ -21,7 +20,6 @@ on:
       - "tests/e2e/**"
       - "prisma/**"
       - "Dockerfile"
-      - "docker-compose.yml"
       - "package.json"
       - "pnpm-lock.yaml"
       - "playwright.config.ts"
@@ -36,19 +34,12 @@ jobs:
     runs-on: ubuntu-latest
     env:
       APP_PORT: 3000
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: satojay_gym
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/satojay_gym?schema=public
       ADMIN_PASSWORD_HASH: '$2b$10$7EqJtq98hPqEX7fNZaFWoOhiZX6bSPK0fHMZE2/X9/y3I5srLqCsa'
       ADMIN_SESSION_SECRET: e2e-session-secret-change-me-32-chars
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-
-      - name: Setup Docker Compose
-        uses: docker/setup-compose-action@v2
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -67,35 +58,8 @@ jobs:
       - name: Install Playwright browser
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Build and start disposable stack
-        run: docker compose -f docker-compose.yml up -d --build
-
-      - name: Create tables
-        run: |
-          for migration in prisma/migrations/*/migration.sql; do
-            docker compose -f docker-compose.yml exec -T db \
-              psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$migration"
-          done
-
-      - name: Seed database
-        run: |
-          docker compose -f docker-compose.yml exec -T db \
-            psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < prisma/seed.sql
-
-      - name: Wait for app
-        run: |
-          for i in {1..60}; do
-            if curl -fsS "http://127.0.0.1:${APP_PORT}" >/dev/null; then
-              exit 0
-            fi
-            sleep 2
-          done
-
-          docker compose -f docker-compose.yml logs app
-          exit 1
-
       - name: Run reservation CV E2E
-        run: pnpm exec playwright test tests/e2e/reservation-cv.spec.ts
+        run: pnpm test:e2e -- tests/e2e/reservation-cv.spec.ts
 
       - name: Write E2E summary
         if: always()
@@ -170,7 +134,3 @@ jobs:
           name: playwright-test-results
           path: test-results
           if-no-files-found: ignore
-
-      - name: Stop disposable stack
-        if: always()
-        run: docker compose -f docker-compose.yml down -v --remove-orphans
