@@ -1,18 +1,30 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SLOT_ALREADY_BOOKED_MESSAGE } from "~/shared/reservation-types";
 
-const { createBookingMock } = vi.hoisted(() => ({
-  createBookingMock: vi.fn(async () => ({
+const { createBookingMock, txMock, withTransactionMock } = vi.hoisted(() => {
+  const txMock = { name: "transaction-client" };
+  const withTransactionMock = vi.fn(async (callback: (tx: typeof txMock) => unknown) => callback(txMock));
+  const createBookingMock = vi.fn(async () => ({
     ok: false,
     error: { type: "UNIQUE_SLOT_CONFLICT" },
-  })),
-}));
+  }));
+  return { createBookingMock, txMock, withTransactionMock };
+});
 
 vi.mock("~/server/repositories/booking-repository", () => ({
   createBooking: createBookingMock,
 }));
 
+vi.mock("~/server/prisma/functions", () => ({
+  withTransaction: withTransactionMock,
+}));
+
 describe("booking-service", () => {
+  beforeEach(() => {
+    createBookingMock.mockClear();
+    withTransactionMock.mockClear();
+  });
+
   it("reuses the in-flight result for the same submission token", async () => {
     createBookingMock.mockResolvedValueOnce({
       ok: true,
@@ -41,6 +53,15 @@ describe("booking-service", () => {
       value: { bookingId: "booking_1", bookingNumber: "GYM-20260616-0001" },
     });
     expect(createBookingMock).toHaveBeenCalledTimes(1);
+    expect(withTransactionMock).toHaveBeenCalledTimes(1);
+    expect(createBookingMock).toHaveBeenCalledWith({
+      client: txMock,
+      input: expect.objectContaining({
+        slotId: "slot_1",
+        storeId: "store_1",
+        bookingNumber: expect.stringMatching(/^GYM-20260616-\d{4}$/),
+      }),
+    });
   });
 
   it("generates a human-readable booking number for a Tokyo business date", async () => {

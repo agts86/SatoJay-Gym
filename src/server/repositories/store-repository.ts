@@ -1,5 +1,5 @@
 import type { AvailabilitySlot, Store } from "@prisma/client";
-import { db } from "~/server/db";
+import { prisma } from "~/server/prisma/client";
 import { KANTO_PREFECTURES, type AvailabilitySlotView, type Prefecture, type StoreSummary } from "~/shared/reservation-types";
 
 interface SlotSearchCondition {
@@ -49,7 +49,7 @@ export const storeRepository = {
   },
 
   async listStoresByPrefecture(prefecture: Prefecture): Promise<StoreSummary[]> {
-    const stores = await db.store.findMany({
+    const stores = await prisma.store.findMany({
       where: { prefecture },
       orderBy: { name: "asc" },
     });
@@ -57,14 +57,14 @@ export const storeRepository = {
   },
 
   async listStores(): Promise<StoreSummary[]> {
-    const stores = await db.store.findMany({
+    const stores = await prisma.store.findMany({
       orderBy: [{ prefecture: "asc" }, { name: "asc" }],
     });
     return stores.map(toStoreSummary);
   },
 
   async listSlotsByStore({ range, storeId }: SlotSearchCondition): Promise<AvailabilitySlotView[]> {
-    const slots = await db.availabilitySlot.findMany({
+    const slots = await prisma.availabilitySlot.findMany({
       where: {
         storeId,
         startsAt: {
@@ -83,7 +83,7 @@ export const storeRepository = {
   },
 
   async findStore(storeId: string): Promise<StoreSummary | null> {
-    const store = await db.store.findUnique({ where: { id: storeId } });
+    const store = await prisma.store.findUnique({ where: { id: storeId } });
     return store ? toStoreSummary(store) : null;
   },
 };

@@ -1,6 +1,6 @@
 import { KANTO_PREFECTURES, type Prefecture } from "../src/shared/reservation-types";
 import { addDaysTokyo, createTokyoSlotUtc, formatTokyoDateKey } from "../src/shared/tokyo-date";
-import { createSatoJayPrismaClient } from "../src/server/prisma-client";
+import { createSatoJayPrismaClient } from "../src/server/prisma/client";
 
 await using prisma = createSatoJayPrismaClient();
 

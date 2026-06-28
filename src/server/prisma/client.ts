@@ -13,3 +13,15 @@ export function createSatoJayPrismaClient(...args: ConstructorParameters<typeof 
   });
   return client as SatoJayPrismaClient;
 }
+
+const globalForPrisma = globalThis as unknown as { prisma?: SatoJayPrismaClient };
+
+export const prisma =
+  globalForPrisma.prisma ??
+  createSatoJayPrismaClient({
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+  });
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
+}

@@ -1,4 +1,5 @@
 import { createBooking, type BookingPersistenceError } from "~/server/repositories/booking-repository";
+import { withTransaction } from "~/server/prisma/functions";
 import { createBookingInputSchema, type CreateBookingInput } from "~/shared/reservation-schema";
 import { SLOT_ALREADY_BOOKED_MESSAGE, type Result } from "~/shared/reservation-types";
 import { formatTokyoDateKey } from "~/shared/tokyo-date";
@@ -45,7 +46,7 @@ function createOncePerSubmission(
 async function createWithRetry(input: CreateBookingInput, dateKey: string): Promise<Result<CreateBookingOutput, BookingError>> {
   for (let attempt = 0; attempt < maxBookingNumberAttempts; attempt += 1) {
     const bookingNumber = generateBookingNumber(dateKey);
-    const result = await createBooking({ ...input, bookingNumber });
+    const result = await withTransaction((tx) => createBooking({ client: tx, input: { ...input, bookingNumber } }));
     if (result.ok) {
       return {
         ok: true,

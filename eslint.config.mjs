@@ -16,4 +16,24 @@ export default tseslint.config(
       "@typescript-eslint/no-explicit-any": "error",
     },
   },
+  {
+    files: ["src/server/services/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "~/server/db",
+              message: "サービス層では server/prisma/functions か repository 関数を経由してください。",
+            },
+            {
+              name: "~/server/prisma/client",
+              message: "サービス層では server/prisma/functions か repository 関数を経由してください。",
+            },
+          ],
+        },
+      ],
+    },
+  },
 );
