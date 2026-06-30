@@ -67,3 +67,11 @@ Node.jsとpnpmは `package.json` のVolta設定で固定しています。
 - `pnpm lint`
 - `pnpm build`
 - `pnpm test`
+
+## Prisma
+
+このプロジェクトはPrisma migration履歴を保持せず、`prisma db push`でschemaをDBへ反映します。
+
+- `pnpm prisma:migrate`: ローカルDBへschemaを反映
+- `pnpm prisma:deploy`: 本番相当DBへschemaを反映
+- `pnpm prisma:seed`: 店舗seedを投入

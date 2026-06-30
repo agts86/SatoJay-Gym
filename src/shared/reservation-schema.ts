@@ -16,7 +16,8 @@ export const reservationCustomerSchema = z.object({
 export const createBookingInputSchema = reservationCustomerSchema.extend({
   submissionToken: z.string().trim().min(16).max(128),
   storeId: z.string().min(1),
-  slotId: z.string().min(1),
+  startsAt: z.string().datetime({ offset: true }),
+  endsAt: z.string().datetime({ offset: true }),
 });
 
 export const adminLoginSchema = z.object({

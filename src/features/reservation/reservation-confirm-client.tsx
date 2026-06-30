@@ -59,7 +59,8 @@ export function ReservationConfirmClient() {
           <form action={action} className="grid">
             <input name="submissionToken" type="hidden" value={submissionToken} />
             <input name="storeId" type="hidden" value={draft.store.id} />
-            <input name="slotId" type="hidden" value={draft.slot.id} />
+            <input name="startsAt" type="hidden" value={draft.slot.startsAt} />
+            <input name="endsAt" type="hidden" value={draft.slot.endsAt} />
             <input name="customerName" type="hidden" value={draft.customerName} />
             <input name="customerEmail" type="hidden" value={draft.customerEmail} />
             <input name="customerPhone" type="hidden" value={draft.customerPhone} />

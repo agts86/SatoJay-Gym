@@ -2,7 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { SLOT_ALREADY_BOOKED_MESSAGE } from "~/shared/reservation-types";
 
 interface SelectedReservation {
-  slotId: string;
+  startsAt: string;
   storeId: string;
 }
 
@@ -119,7 +119,7 @@ async function selectFirstAvailableReservation(page: Page): Promise<SelectedRese
   await availableSlot.click();
 
   return {
-    slotId: await requireAttribute(availableSlot, "data-slot-id"),
+    startsAt: await requireAttribute(availableSlot, "data-starts-at-utc"),
     storeId: await requireAttribute(storeCard, "data-store-id"),
   };
 }
@@ -128,7 +128,7 @@ async function selectReservation(page: Page, selectedReservation: SelectedReserv
   await expect(page.locator("#reservation-next-button")).toBeDisabled();
   await page.locator(`[data-store-id="${selectedReservation.storeId}"]`).click();
 
-  const slot = page.locator(`[data-slot-id="${selectedReservation.slotId}"]`);
+  const slot = page.locator(`[data-starts-at-utc="${selectedReservation.startsAt}"]`);
   await expect(slot).toBeVisible();
   await expect(slot).toHaveAttribute("data-selectable", "true");
   await slot.click();

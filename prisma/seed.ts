@@ -1,5 +1,4 @@
 import { KANTO_PREFECTURES, type Prefecture } from "../src/shared/reservation-types";
-import { addDaysTokyo, createTokyoSlotUtc, formatTokyoDateKey } from "../src/shared/tokyo-date";
 import { createSatoJayPrismaClient } from "../src/server/prisma/client";
 
 await using prisma = createSatoJayPrismaClient();
@@ -28,62 +27,20 @@ const storesByPrefecture: Record<Prefecture, string[]> = {
 const facilities = ["24時間営業", "シャワー", "ロッカー", "レンタルウェア"];
 const programs = ["体験トレーニング", "姿勢改善", "筋力アップ", "ダイエット"];
 
-interface StoreSeedContext {
-  storeId: string;
-  todayKey: string;
-}
-
-interface DateSlotSeedContext {
-  storeId: string;
-  dateKey: string;
-}
-
 async function main(): Promise<void> {
-  const todayKey = formatTokyoDateKey(new Date());
-
   for (const prefecture of KANTO_PREFECTURES) {
-    await seedStoresForPrefecture(prefecture, todayKey);
+    await seedStoresForPrefecture(prefecture);
   }
 }
 
-async function seedStoresForPrefecture(prefecture: Prefecture, todayKey: string): Promise<void> {
+async function seedStoresForPrefecture(prefecture: Prefecture): Promise<void> {
   for (const suffix of storesByPrefecture[prefecture]) {
-    const store = await prisma.store.upsert({
+    await prisma.store.upsert({
       where: { name: `SatoJay Gym ${suffix}` },
       update: storeData(prefecture, suffix),
       create: {
         name: `SatoJay Gym ${suffix}`,
         ...storeData(prefecture, suffix),
-      },
-    });
-
-    await seedSlotsForStore({ storeId: store.id, todayKey });
-  }
-}
-
-async function seedSlotsForStore({ storeId, todayKey }: StoreSeedContext): Promise<void> {
-  for (let dayOffset = 0; dayOffset < 30; dayOffset += 1) {
-    const dateKey = addDaysTokyo(todayKey, dayOffset);
-    await seedSlotsForDate({ storeId, dateKey });
-  }
-}
-
-async function seedSlotsForDate({ storeId, dateKey }: DateSlotSeedContext): Promise<void> {
-  for (let hour = 10; hour < 20; hour += 1) {
-    const startsAt = createTokyoSlotUtc(dateKey, hour);
-    const endsAt = createTokyoSlotUtc(dateKey, hour + 1);
-    await prisma.availabilitySlot.upsert({
-      where: {
-        storeId_startsAt: {
-          storeId,
-          startsAt,
-        },
-      },
-      update: { endsAt },
-      create: {
-        storeId,
-        startsAt,
-        endsAt,
       },
     });
   }

@@ -4,10 +4,8 @@ import type { AdminBookingRow, Result } from "~/shared/reservation-types";
 import type { CreateBookingInput } from "~/shared/reservation-schema";
 
 export type BookingPersistenceError =
-  | { type: "UNIQUE_SLOT_CONFLICT"; slotId: string }
+  | { type: "UNIQUE_SLOT_CONFLICT"; startsAt: string; storeId: string }
   | { type: "BOOKING_NUMBER_CONFLICT"; bookingNumber: string }
-  | { type: "SLOT_NOT_FOUND"; slotId: string }
-  | { type: "SLOT_STORE_MISMATCH"; slotId: string; storeId: string }
   | { type: "UNKNOWN_PERSISTENCE_ERROR" };
 
 export interface PersistedBooking {
@@ -15,7 +13,7 @@ export interface PersistedBooking {
   bookingNumber: string;
 }
 
-type BookingWriteClient = Pick<Prisma.TransactionClient, "availabilitySlot" | "booking">;
+type BookingWriteClient = Pick<Prisma.TransactionClient, "booking">;
 
 interface CreateBookingParams {
   client: BookingWriteClient;
@@ -27,22 +25,12 @@ export async function createBooking(
 ): Promise<Result<PersistedBooking, BookingPersistenceError>> {
   const { client, input } = params;
   try {
-    const slot = await client.availabilitySlot.findUnique({
-      where: { id: input.slotId },
-      select: { storeId: true },
-    });
-    if (!slot) {
-      return { ok: false, error: { type: "SLOT_NOT_FOUND", slotId: input.slotId } };
-    }
-    if (slot.storeId !== input.storeId) {
-      return { ok: false, error: { type: "SLOT_STORE_MISMATCH", slotId: input.slotId, storeId: input.storeId } };
-    }
-
     const booking = await client.booking.create({
       data: {
         bookingNumber: input.bookingNumber,
         storeId: input.storeId,
-        slotId: input.slotId,
+        startsAt: new Date(input.startsAt),
+        endsAt: new Date(input.endsAt),
         customerName: input.customerName,
         customerEmail: input.customerEmail,
         customerPhone: input.customerPhone,
@@ -65,20 +53,15 @@ export async function listBookingsByStore(storeId: string): Promise<AdminBooking
     where: { storeId },
     include: {
       store: { select: { name: true } },
-      slot: { select: { startsAt: true } },
     },
-    orderBy: {
-      slot: {
-        startsAt: "asc",
-      },
-    },
+    orderBy: { startsAt: "asc" },
   });
 
   return bookings.map((booking) => ({
     id: booking.id,
     bookingNumber: booking.bookingNumber,
     storeName: booking.store.name,
-    startsAt: booking.slot.startsAt.toISOString(),
+    startsAt: booking.startsAt.toISOString(),
     customerName: booking.customerName,
     customerEmail: booking.customerEmail,
     customerPhone: booking.customerPhone,
@@ -87,11 +70,26 @@ export async function listBookingsByStore(storeId: string): Promise<AdminBooking
   }));
 }
 
+export async function listBookedStartsByStore(params: { storeId: string; range: { from: Date; to: Date } }): Promise<Date[]> {
+  const bookings = await prisma.booking.findMany({
+    where: {
+      storeId: params.storeId,
+      startsAt: {
+        gte: params.range.from,
+        lt: params.range.to,
+      },
+    },
+    orderBy: { startsAt: "asc" },
+    select: { startsAt: true },
+  });
+  return bookings.map((booking) => booking.startsAt);
+}
+
 function mapCreateError(error: unknown, input: CreateBookingInput & { bookingNumber: string }): BookingPersistenceError {
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
     const target = Array.isArray(error.meta?.target) ? error.meta.target.join(",") : String(error.meta?.target ?? "");
-    if (target.includes("slotId")) {
-      return { type: "UNIQUE_SLOT_CONFLICT", slotId: input.slotId };
+    if (target.includes("storeId") || target.includes("startsAt")) {
+      return { type: "UNIQUE_SLOT_CONFLICT", startsAt: input.startsAt, storeId: input.storeId };
     }
     return { type: "BOOKING_NUMBER_CONFLICT", bookingNumber: input.bookingNumber };
   }

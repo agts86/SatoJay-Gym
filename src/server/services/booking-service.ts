@@ -1,5 +1,6 @@
 import { createBooking, type BookingPersistenceError } from "~/server/repositories/booking-repository";
 import { withTransaction } from "~/server/prisma/functions";
+import { isReservableGeneratedSlot } from "~/server/services/availability-service";
 import { createBookingInputSchema, type CreateBookingInput } from "~/shared/reservation-schema";
 import { SLOT_ALREADY_BOOKED_MESSAGE, type Result } from "~/shared/reservation-types";
 import { formatTokyoDateKey } from "~/shared/tokyo-date";
@@ -22,6 +23,9 @@ export async function createReservation(input: unknown, now = new Date()): Promi
   const parsed = createBookingInputSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: { type: "VALIDATION_ERROR", fields: zodFields(parsed.error) } };
+  }
+  if (!isReservableInputSlot(parsed.data, now)) {
+    return { ok: false, error: { type: "VALIDATION_ERROR", fields: { startsAt: "予約日時を確認してください" } } };
   }
 
   return createOncePerSubmission(parsed.data, formatTokyoDateKey(now), now.getTime());
@@ -76,6 +80,14 @@ function mapPersistenceError(error: BookingPersistenceError): BookingError {
     return { type: "SLOT_ALREADY_BOOKED", message: SLOT_ALREADY_BOOKED_MESSAGE };
   }
   return { type: "PERSISTENCE_ERROR", message: "予約の保存に失敗しました" };
+}
+
+function isReservableInputSlot(input: CreateBookingInput, now: Date): boolean {
+  return isReservableGeneratedSlot({
+    startsAt: new Date(input.startsAt),
+    endsAt: new Date(input.endsAt),
+    now,
+  });
 }
 
 function zodFields(error: { issues: { path: PropertyKey[]; message: string }[] }): Record<string, string> {

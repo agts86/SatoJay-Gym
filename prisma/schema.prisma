@@ -19,31 +19,17 @@ model Store {
   priceText     String
   createdAt     DateTime           @default(now()) @db.Timestamptz(3)
   updatedAt     DateTime           @updatedAt @db.Timestamptz(3)
-  slots         AvailabilitySlot[]
   bookings      Booking[]
 
   @@index([prefecture])
-}
-
-model AvailabilitySlot {
-  id        String    @id @default(cuid())
-  storeId   String
-  startsAt  DateTime  @db.Timestamptz(3)
-  endsAt    DateTime  @db.Timestamptz(3)
-  createdAt DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
-  store     Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  booking   Booking?
-
-  @@unique([storeId, startsAt])
-  @@index([storeId, startsAt])
 }
 
 model Booking {
   id            String           @id @default(cuid())
   bookingNumber String           @unique
   storeId       String
-  slotId        String           @unique
+  startsAt      DateTime         @db.Timestamptz(3)
+  endsAt        DateTime         @db.Timestamptz(3)
   customerName  String
   customerEmail String
   customerPhone String
@@ -52,7 +38,7 @@ model Booking {
   createdAt     DateTime         @default(now()) @db.Timestamptz(3)
   updatedAt     DateTime         @updatedAt @db.Timestamptz(3)
   store         Store            @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  slot          AvailabilitySlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
 
   @@index([storeId])
+  @@unique([storeId, startsAt])
 }
