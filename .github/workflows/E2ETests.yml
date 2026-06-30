@@ -36,6 +36,7 @@ jobs:
       APP_PORT: 3000
       ADMIN_PASSWORD_HASH: '$2b$10$7EqJtq98hPqEX7fNZaFWoOhiZX6bSPK0fHMZE2/X9/y3I5srLqCsa'
       ADMIN_SESSION_SECRET: e2e-session-secret-change-me-32-chars
+      E2E_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/satojay_gym?schema=public
 
     steps:
       - name: Checkout
@@ -57,6 +58,12 @@ jobs:
 
       - name: Install Playwright browser
         run: pnpm exec playwright install --with-deps chromium
+
+      - name: Start PostgreSQL
+        run: |
+          sudo systemctl start postgresql.service
+          sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres';"
+          sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname = 'satojay_gym'" | grep -q 1 || sudo -u postgres createdb satojay_gym
 
       - name: Run reservation CV E2E
         run: pnpm test:e2e -- tests/e2e/reservation-cv.spec.ts
