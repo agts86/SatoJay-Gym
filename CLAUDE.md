@@ -70,7 +70,7 @@ Skills are located in `.claude/skills/kiro-*/SKILL.md`
 
 ## プロジェクト概要
 
-スクレイピング練習用の架空トレーニングジムLP。T3 App構成のNext.js 16（App Router / React 19）アプリで、PostgreSQL に店舗・予約情報を保存する。tRPC 11・Prisma 6・Zod 4・Tailwind 4 を使用。パッケージマネージャは pnpm（Volta で Node/pnpm 固定）。
+スクレイピング練習用の架空トレーニングジムLP。T3 App構成のNext.js 16（App Router / React 19）アプリで、PostgreSQL に店舗・予約情報を保存する。tRPC 11・Prisma 6・Zod 4・Tailwind 4 を使用。パッケージマネージャは pnpm（mise で Node/pnpm 固定）。
 
 ## コマンド
 

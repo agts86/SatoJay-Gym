@@ -39,9 +39,9 @@ Dev Container内ではCodex CLIも使えます。ホストの `~/.codex` を `/h
 
 本番用 `Dockerfile` はAzure App Serviceのcustom container既定に合わせて、コンテナ内では80番でlistenします。ローカルでは `APP_PORT=3000` によりホストの3000番からコンテナの80番へ転送します。別ポートで動かす場合はAzure側に `WEBSITES_PORT` を設定してください。
 
-### Volta
+### mise
 
-Node.jsとpnpmは `package.json` のVolta設定で固定しています。
+Node.jsとpnpmは `mise.toml` で固定しています。
 
 - Node.js: `24.11.1`
 - pnpm: `10.26.0`
