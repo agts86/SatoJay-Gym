@@ -13,7 +13,7 @@ export interface PersistedBooking {
   bookingNumber: string;
 }
 
-type BookingWriteClient = Pick<Prisma.TransactionClient, "booking">;
+type BookingWriteClient = { booking: Pick<Prisma.TransactionClient["booking"], "create"> };
 
 interface CreateBookingParams {
   client: BookingWriteClient;

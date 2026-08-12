@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { createBooking } from "~/server/repositories/booking-repository";
 import { SLOT_ALREADY_BOOKED_MESSAGE } from "~/shared/reservation-types";
 
 const { createBookingMock, txMock, withTransactionMock } = vi.hoisted(() => {
   const txMock = { name: "transaction-client" };
   const withTransactionMock = vi.fn(async (callback: (tx: typeof txMock) => unknown) => callback(txMock));
-  const createBookingMock = vi.fn(async () => ({
+  const createBookingMock = vi.fn<typeof createBooking>(async () => ({
     ok: false,
-    error: { type: "UNIQUE_SLOT_CONFLICT" },
+    error: { type: "UNIQUE_SLOT_CONFLICT", startsAt: "2026-06-16T01:00:00.000Z", storeId: "store_1" },
   }));
   return { createBookingMock, txMock, withTransactionMock };
 });
@@ -75,7 +76,7 @@ describe("booking-service", () => {
   it("maps slot unique conflicts to the required customer-facing message", async () => {
     createBookingMock.mockResolvedValueOnce({
       ok: false,
-      error: { type: "UNIQUE_SLOT_CONFLICT" },
+      error: { type: "UNIQUE_SLOT_CONFLICT", startsAt: "2026-06-16T01:00:00.000Z", storeId: "store_1" },
     });
 
     const { createReservation } = await import("~/server/services/booking-service");
