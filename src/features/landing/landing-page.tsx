@@ -1,12 +1,12 @@
 import { ArrowRight, Dumbbell } from "lucide-react";
 import Link from "next/link";
-import { EfoScript } from "~/features/landing/efo-script";
+// import { EfoScript } from "~/features/landing/efo-script";
 import { scrapeIds } from "~/shared/scrape-ids";
 
 export function LandingPage() {
   return (
     <>
-      <EfoScript />
+      {/* <EfoScript /> */}
       <main>
         <section id={scrapeIds.lp.hero} className="page-shell" style={{ minHeight: "84vh", display: "grid", alignContent: "center" }}>
           <p className="muted">SatoJay Gym 体験トレーニング</p>
