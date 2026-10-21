@@ -43,7 +43,7 @@ Dev Container内ではCodex CLIも使えます。ホストの `~/.codex` を `/h
 
 Node.jsとpnpmは `mise.toml` で固定しています。
 
-- Node.js: `24.11.1`
+- Node.js: `24.22.1`
 - pnpm: `10.26.0`
 
 ## URL
